@@ -8,9 +8,13 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(cache = T)
+
+library(data.table)
+library(randtoolbox)
+library(readr)
 ```
 
-
+# Generatory
 ## LCG
 
 *tekst*
@@ -36,7 +40,6 @@ LCG(10, 2^10,3,7, 0)
 ## GLCG
 
 ```{r GLCG}
-library(data.table)
 GLCG<-function(n, M,a_wek, x_wek){
   # n - liczba generowanych liczb
   randoms<-numeric(n)
@@ -65,13 +68,13 @@ GLCG(20,2**10, c(3,7,68), 1:3)
 ```{r KSA}
 m=32
 #Key Schelduling Alghoritm
-KSA <-function(Key){
+KSA <-function(Key, m=32){
   # przyjmuje klucz sortowania, zwraca permutację
   L=length(Key)
   S=c( 0 : (m-1)) # {0,1,..,m-1}
   j = 0
-  for( i in 1:m){
-       j = (j + S[i+1] + Key[i %% L]) %% m
+  for( i in 0:(m-1)){
+       j = (j + S[i+1] + Key[i %% L +1]) %% m
        
         # swap ( S[j+1], S[i+1] )
         temp=S[j+1]
@@ -86,10 +89,11 @@ KSA <-function(Key){
 ```{r RC4}
 m = 32
 
-RK4<-function(n, seed=c(0,0), S=c( 0 : (m-1)) ){
-  # liczba generowanych liczb losowych
+RC4<-function(n, Key=NULL, seed=c(0,0), m=32){
+  # n -liczba generowanych liczb losowych
   randoms = numeric(n)
   i=seed[1]; j=seed[2]
+  if(is.null(Key)){ S=c( 0 : (m-1))}else{S=KSA(Key)}
   for( iter in 1:n){
     
     i = (i+1) %%m
@@ -108,37 +112,146 @@ RK4<-function(n, seed=c(0,0), S=c( 0 : (m-1)) ){
 ```
 
 ```{r}
-RK4(5); RK4(15); RK4(45)
+RC4(5); RC4(15); RC4(45)
 
 par(mfrow=c(1,2))
-hist(RK4(100)/32)
+hist(RC4(100)/32)
 hist(runif(100))
 
 par(mfrow=c(1,2))
-hist(RK4(1000)/32)
+hist(RC4(1000)/32)
 hist(runif(1000))
 ```
 
-
 ## Testy
 
-```{r}
-library(randtoolbox)
+
+
+```{ testy wbudowane}
 # test kolizji
 ?coll.test.sparse
 ?coll.test
 
-
+?freq.test
 ?ks.test
+?poker.test
+?chisq.test
 
 
 ```
 
+### Frequency Monobit Test
+
+Zauważmy, że liczby ze zbioru $[2^k] = \{0, 1, ... ,2^k-1\}$ można zapisać jako ciągi bitów długości $k$. Losując jednostajnie jedną z liczb ze zbioru $[2^k]$ otrzymujemy 8 bitów o rozkładzie jednostajnym na zbiorze $\{0,1\}$.
+
+```{r Frequency Monobit Test}
+freq.monobit.test<-function(bits){
+  n=length(bits)
+  bits[bits==0] <- -1
+  S_obs = sum(bits) / sqrt(n) #test statistic
+  p_val <- 1- pnorm(S_obs)
+  
+  result<-c(S_obs, p_val)
+  names(result)<-c("Test statistic", "p-value")
+  return(result)
+}
+```
 
 
-## Źródła
+```{r Konwersja int - 6bit}
+
+int6bit<-function(x){int2bit(x)[1:6]} #dla liczb
+
+int6bits<-function(x){ 
+  # dla wektorów
+  L=length(x)
+  result= numeric(L*6)
+  for(i in 1:L){
+    result[(6*i-5) : (6*i) ] <- int6bit(x[i])
+  }
+  return(result)
+}
+```
+
+```{r RC(32) - Frequency Monobit Test}
+# first level testing
+n=10
+RC32_FM.test<-function(n,  Key=c(1,22,5), seed=c(0,0)){
+  rands <- RC4(n, Key, seed)
+  bits <- int6bits(rands)
+  return(freq.monobit.test(bits))
+}
+```
+
+```{r RC(32) - Frequency Monobit Test - lvl2}
+reps = 1000 # powrórzenia z second level testing
+# to będzie funkcja
+Ts=numeric(reps)
+p_vals=numeric(reps)
+
+for(r in 1:reps){
+  RC32_FM.test
+}
+
+
+
+```
+
+# Liczby niewymierne
+```{r pobieranie dnych z pliku, message=FALSE}
+import_bits<-function(path){
+  data <-read_csv(path,col_names = FALSE)
+  data <- data$X1
+  bits <- as.numeric(unlist(strsplit(data,"")))
+  return(bits)
+}
+Pi_bits <- import_bits("https://www.math.uni.wroc.pl/~rolski/Zajecia/data.pi")
+e_bits <- import_bits("https://www.math.uni.wroc.pl/~rolski/Zajecia/data.e")
+sqrt2_bist <- import_bits("https://www.math.uni.wroc.pl/~rolski/Zajecia/data.sqrt2")
+```
+
+```{r irrationals FMT -lv1}
+irrationals_FM.test<-function(n, irrational){
+  bits<-irrational[1:n]
+  return(freq.monobit.test(bits))
+}
+```
+
+
+```{r irrationals FMT -lv2}
+reps = 1000 # powrórzenia second level testing
+n = 10 # ilość losowanych liczb
+
+irrationals_FM.test.lvl2<-function(n, reps, irrational){
+  Ts=numeric(reps)
+  p_vals=numeric(reps)
+  for(r in 1:reps){
+    bits<-irrational[{(n)*(r-1)+1}:(n*r)]
+    test <- freq.monobit.test(bits)
+    Ts[r]<-test[[1]]
+    p_vals[r]<-test[[2]]
+  }
+  return(p_vals)
+}
+```
+## Bity $\pi$ - Frequency Monobit Test
+
+```{r}
+irrationals_FM.test(10, Pi_bits)
+length(Pi_bits)
+
+hist(irrationals_FM.test.lvl2(1000, 10000, Pi_bits))
+```
+
+
+
+
+# Źródła
 https://ipsec.pl/files/ipsec/ving-krypto.pdf   str 7
 
 "Theory and Practice of Monte Carlo Methods" 
 Paweł Lorek Tomasz Rolski
+
+https://pl.wikipedia.org/wiki/RC4
+ dokumentacja R
 
