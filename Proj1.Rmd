@@ -142,7 +142,7 @@ hist(runif(1000))
 
 ### Frequency Monobit Test
 
-Zauważmy, że liczby ze zbioru $[2^k] = \{0, 1, ... ,2^k-1\}$ można zapisać jako ciągi bitów długości $k$. Losując jednostajnie jedną z liczb ze zbioru $[2^k]$ otrzymujemy 8 bitów o rozkładzie jednostajnym na zbiorze $\{0,1\}$.
+Zauważmy, że liczby ze zbioru $[2^k] := \{0, 1, ... ,2^k-1\}$ można zapisać jako ciągi bitów długości $k$. Losując jednostajnie jedną z liczb ze zbioru $[2^k]$ otrzymujemy 8 bitów o rozkładzie jednostajnym na zbiorze $\{0,1\}$.
 
 ```{r Frequency Monobit Test}
 freq.monobit.test<-function(bits){
@@ -158,16 +158,16 @@ freq.monobit.test<-function(bits){
 ```
 
 
-```{r Konwersja int - 6bit}
+```{r Konwersja int - 5bit}
 
-int6bit<-function(x){int2bit(x)[1:6]} #dla liczb
+int5bit<-function(x){int2bit(x)[1:5]} #dla liczb
 
-int6bits<-function(x){ 
+int5bits<-function(x){ 
   # dla wektorów
   L=length(x)
-  result= numeric(L*6)
+  result= numeric(L*5)
   for(i in 1:L){
-    result[(6*i-5) : (6*i) ] <- int6bit(x[i])
+    result[(5*i-4) : (5*i) ] <- int5bit(x[i])
   }
   return(result)
 }
@@ -178,7 +178,7 @@ int6bits<-function(x){
 n=10
 RC32_FM.test<-function(n,  Key=c(1,22,5), seed=c(0,0)){
   rands <- RC4(n, Key, seed)
-  bits <- int6bits(rands)
+  bits <- int5bits(rands)
   return(freq.monobit.test(bits))
 }
 ```
@@ -192,7 +192,6 @@ p_vals=numeric(reps)
 for(r in 1:reps){
   RC32_FM.test
 }
-
 
 
 ```
@@ -234,16 +233,55 @@ irrationals_FM.test.lvl2<-function(n, reps, irrational){
   return(p_vals)
 }
 ```
-## Bity $\pi$ - Frequency Monobit Test
 
-```{r}
-irrationals_FM.test(10, Pi_bits)
-length(Pi_bits)
 
-hist(irrationals_FM.test.lvl2(1000, 10000, Pi_bits))
+```{r floats 2 bits}
+float2bits <- function(wek, len){
+  #len - length of bit vector
+  reps=length(wek)
+  bits =  numeric(len*reps)
+  for( r in 1:reps){
+    t=wek[r]
+    for(i in 1:len){
+      if(t >= 2**(-i)){
+        bits[i + (r-1)*len] <- 1
+        t = t- 2**(-i)
+      }
+      if(t<= 0){break}
+    }
+  }
+  return(bits)
+}
 ```
 
+## Bity $\pi$ - Frequency Monobit Test
+*tekst*
+```{r}
+irrationals_FM.test(10, Pi_bits)[[2]]
+length(Pi_bits)
 
+hist(irrationals_FM.test.lvl2(10000, 1000, Pi_bits))
+
+irrationals_FM.test.lvl2(1000, 10, Pi_bits)
+
+```
+
+### Second-level testing
+
+Zauważmy, że dla prawdziwie losowej próby p-wartość otrzymana w teście jest zmienną loswą o rozkładzie $\mathcal{U}(0,1)$. Każdą liczbę z przedziału $(0,1)$ możemy przedstawić w systemie binarnym jako 
+$$p_{val} = 0.b_1b_2b_3b_4... := \sum_{i=1}^\infty b_i\cdot2^{-i},$$
+gdzie dla każdego $i\in\{1,2,3...\}$ zachodzi $b_i \in \{0,1\}$.
+Weźmy obcięcie tego szeregu do długości $n$.
+$$p_{val}^n =0.b_1b_2b_3b_4...b_n := \sum_{i=1}^n b_i\cdot2^{-i}.$$
+
+Można pokazać indukcyjnie, że gdy $p_{val} \sim \mathcal U(0,1)$ to $\{b_i\}_{i=1}^n$ jest ciągiem losowych bitów dlugości $n$.
+
+$$1^o\quad p_{val} \sim \mathcal U(0,1) \implies \mathbb P(p_{val}<2^{-1}) = \mathbb P(b_1 = 0) = \frac{1}{2} = \mathbb P(p_{val}\geq 2^{-1}) = P(b_1 = 0) $$
+$$2^o \quad założenie:  \mathbb P(b_{i-1} = 0) = \frac{1}{2},\quad\quad teza: \mathbb P(b_i = 0) = \frac{1}{2}$$
+$$\mathbb P(b_i = 0) = \mathbb P(b_i = 0|b_{i-1} = 1) + \mathbb P(b_i = 0|b_{i-1} = 0)  idk czy tak$$
+$$b_i = 1 \iff p_{val} - \sum_{k=1}^i b_k\cdot2^{-k} \geq 2^{-i}$$
+wartość różnicy $p_{val} - \sum_{k=1}^i b_k\cdot2^{-k}$ należy do przedziału $\left[0,2^{-(i-1)}\right]$, a ponieważ $p_{val}$ była rozłożona jednostajnie, to 
+$P(b_i = 1) = \frac{1}{2}$.$C.K.D.$ 
 
 
 # Źródła
