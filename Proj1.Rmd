@@ -12,6 +12,7 @@ knitr::opts_chunk$set(cache = T)
 library(data.table)
 library(randtoolbox)
 library(readr)
+library(collapse)
 ```
 
 # Generatory
@@ -132,7 +133,7 @@ hist(runif(1000))
 ?coll.test.sparse
 ?coll.test
 
-?freq.test
+
 ?ks.test
 ?poker.test
 ?chisq.test
@@ -148,8 +149,8 @@ Zauważmy, że liczby ze zbioru $[2^k] := \{0, 1, ... ,2^k-1\}$ można zapisać 
 freq.monobit.test<-function(bits){
   n=length(bits)
   bits[bits==0] <- -1
-  S_obs = sum(bits) / sqrt(n) #test statistic
-  p_val <- 1- pnorm(S_obs)
+  S_obs = fsum(bits) / sqrt(n) #test statistic
+  p_val <- 2*(1- pnorm(abs(S_obs)))
   
   result<-c(S_obs, p_val)
   names(result)<-c("Test statistic", "p-value")
@@ -190,7 +191,7 @@ Ts=numeric(reps)
 p_vals=numeric(reps)
 
 for(r in 1:reps){
-  RC32_FM.test
+  RC32_FM.test #...
 }
 
 
@@ -217,11 +218,11 @@ irrationals_FM.test<-function(n, irrational){
 ```
 
 
-```{r irrationals FMT -lv2}
+```{r irrationals FMT -lv2 p-vals}
 reps = 1000 # powrórzenia second level testing
 n = 10 # ilość losowanych liczb
 
-irrationals_FM.test.lvl2<-function(n, reps, irrational){
+irrationals_FM.test.p_vals<-function(n, reps, irrational){
   Ts=numeric(reps)
   p_vals=numeric(reps)
   for(r in 1:reps){
@@ -237,7 +238,7 @@ irrationals_FM.test.lvl2<-function(n, reps, irrational){
 
 ```{r floats 2 bits}
 float2bits <- function(wek, len){
-  #len - length of bit vector
+  #len - length of bit vector for single float
   reps=length(wek)
   bits =  numeric(len*reps)
   for( r in 1:reps){
@@ -254,15 +255,37 @@ float2bits <- function(wek, len){
 }
 ```
 
+
+```{r irrationals FMT -lv2}
+irrationals_FM.test.lvl2<-function(n, reps, irrational, len){
+  # n - number of random numbers
+  # reps - number of 2nd lvl test repetitions
+  # len - length of bit vector for single float
+  p_vals <- irrationals_FM.test.p_vals(n, reps, irrational)
+  p_bits <- float2bits(p_vals, len)
+  return(freq.monobit.test(p_bits))
+}
+```
+
 ## Bity $\pi$ - Frequency Monobit Test
-*tekst*
+
+```{r Pi FM test wynik}
+n=2**20
+pi_test <-irrationals_FM.test(n, Pi_bits)
+pi_test
+```
+
+
+Dla pierwszych $n=2^{32}$ wyrazów liczby $\pi$ w zapisie bitowym  
+
 ```{r}
 irrationals_FM.test(10, Pi_bits)[[2]]
 length(Pi_bits)
 
-hist(irrationals_FM.test.lvl2(10000, 1000, Pi_bits))
+hist(irrationals_FM.test.p_vals(10000, 1000, Pi_bits))
 
-irrationals_FM.test.lvl2(1000, 10, Pi_bits)
+
+irrationals_FM.test.p_vals(1000, 10, Pi_bits)
 
 ```
 
@@ -281,7 +304,12 @@ $$2^o \quad założenie:  \mathbb P(b_{i-1} = 0) = \frac{1}{2},\quad\quad teza: 
 $$\mathbb P(b_i = 0) = \mathbb P(b_i = 0|b_{i-1} = 1) + \mathbb P(b_i = 0|b_{i-1} = 0)  idk czy tak$$
 $$b_i = 1 \iff p_{val} - \sum_{k=1}^i b_k\cdot2^{-k} \geq 2^{-i}$$
 wartość różnicy $p_{val} - \sum_{k=1}^i b_k\cdot2^{-k}$ należy do przedziału $\left[0,2^{-(i-1)}\right]$, a ponieważ $p_{val}$ była rozłożona jednostajnie, to 
-$P(b_i = 1) = \frac{1}{2}$.$C.K.D.$ 
+$P(b_i = 1) = \frac{1}{2}$.$\quad\quad\quad\quad\quad\quad\mathbb{C.K.D.}$ 
+
+```{r}
+
+```
+
 
 
 # Źródła
