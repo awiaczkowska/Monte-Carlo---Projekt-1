@@ -128,7 +128,7 @@ hist(runif(1000))
 
 
 
-```{ testy wbudowane}
+```
 # test kolizji
 ?coll.test.sparse
 ?coll.test
@@ -137,13 +137,13 @@ hist(runif(1000))
 ?ks.test
 ?poker.test
 ?chisq.test
-
-
 ```
-
-### Frequency Monobit Test
-
+  
+  
+## Frequency Monobit Test  
+  
 Zauważmy, że liczby ze zbioru $[2^k] := \{0, 1, ... ,2^k-1\}$ można zapisać jako ciągi bitów długości $k$. Losując jednostajnie jedną z liczb ze zbioru $[2^k]$ otrzymujemy 8 bitów o rozkładzie jednostajnym na zbiorze $\{0,1\}$.
+  
 
 ```{r Frequency Monobit Test}
 freq.monobit.test<-function(bits){
@@ -197,7 +197,34 @@ for(r in 1:reps){
 
 ```
 
-# Liczby niewymierne
+# Liczby niewymierne 
+
+W tej części pracy zbadamy losowość liczb niewymiernych :$\pi$, $e$ oraz $\sqrt 2$ przy pomocy Frequency Monobit testu. Narzędzie to służy do badania ciągach bitów, dlatego wykorzystano rozwinięcia liczb zapisane w systemie binarnym.
+
+### Frequency Monobit Test  
+
+Test ten opiera się na badaniu częstości występowania zer i jedynek w zadanym ciągu bitów. 
+W pierwszym kroku każdy z bitów $b_i$ jest przekształcany do elementu zbioru $\{-1,1\}$ funkcją $x_i = 2b_i+1$.
+Statystyka testowa ma postać
+$$T_n^{obs} = \frac{1}{\sqrt n} \sum_{i=1}^n x_i $$ 
+Z Centralnego Twierdzenia Granicznego przy rosnącym $n$ statystyka ta zbiega według rozkładu do $\mathcal N(0,1)$, z czego można wywnioskować, że $p$-wartość w przybliżeniu wynosi
+$$p_{val} := \mathbb P(|T_n^{teoret}| > |T_n^{obs}|) \approx \mathbb P(|N| > |T_n^{obs}|) = 2\cdot\left(1-\phi(|T_n^{obs}|)\right)$$
+
+### Second-level testing
+
+Zauważmy, że dla prawdziwie losowej próby p-wartość otrzymana w teście jest zmienną loswą o rozkładzie $\mathcal{U}(0,1)$. Każdą liczbę z przedziału $(0,1)$ możemy przedstawić w systemie binarnym jako 
+$$p_{val} = 0.b_1b_2b_3b_4... := \sum_{i=1}^\infty b_i\cdot2^{-i},$$
+gdzie dla każdego $i\in\{1,2,3...\}$ zachodzi $b_i \in \{0,1\}$.
+Weźmy obcięcie tego szeregu do długości $n$.
+$$p_{val}^n =0.b_1b_2b_3b_4...b_n := \sum_{i=1}^n b_i\cdot2^{-i}.$$
+
+Można pokazać indukcyjnie, że gdy $p_{val} \sim \mathcal U(0,1)$ to $\{b_i\}_{i=1}^n$ jest ciągiem losowych bitów dlugości $n$.
+
+$$1^o\quad p_{val} \sim \mathcal U(0,1) \implies \mathbb P(p_{val}<2^{-1}) = \mathbb P(b_1 = 0) = \frac{1}{2} = \mathbb P(p_{val}\geq 2^{-1}) = P(b_1 = 0) $$
+$$2^o \quad założenie:  \mathbb P(b_{i-1} = 0) = \frac{1}{2},\quad\quad teza: \mathbb P(b_i = 0) = \frac{1}{2}$$
+$$b_i = 1 \iff p_{val} - \sum_{k=1}^i b_k\cdot2^{-k} \geq 2^{-i}$$
+wartość różnicy $p_{val} - \sum_{k=1}^i b_k\cdot2^{-k}$ należy do przedziału $\left[0,2^{-(i-1)}\right]$, a ponieważ $p_{val}$ była rozłożona jednostajnie, to 
+$P(b_i = 1) = \frac{1}{2}$.$\quad\quad\quad\quad\quad\quad\mathbb{C.K.D.}$ 
 ```{r pobieranie dnych z pliku, message=FALSE}
 import_bits<-function(path){
   data <-read_csv(path,col_names = FALSE)
@@ -210,6 +237,8 @@ e_bits <- import_bits("https://www.math.uni.wroc.pl/~rolski/Zajecia/data.e")
 sqrt2_bist <- import_bits("https://www.math.uni.wroc.pl/~rolski/Zajecia/data.sqrt2")
 ```
 
+
+
 ```{r irrationals FMT -lv1}
 irrationals_FM.test<-function(n, irrational){
   bits<-irrational[1:n]
@@ -219,8 +248,8 @@ irrationals_FM.test<-function(n, irrational){
 
 
 ```{r irrationals FMT -lv2 p-vals}
-reps = 1000 # powrórzenia second level testing
-n = 10 # ilość losowanych liczb
+# reps - powrórzenia second level testing
+# n - ilość losowanych liczb
 
 irrationals_FM.test.p_vals<-function(n, reps, irrational){
   Ts=numeric(reps)
@@ -272,44 +301,24 @@ irrationals_FM.test.lvl2<-function(n, reps, irrational, len){
 ```{r Pi FM test wynik}
 n=2**20
 pi_test <-irrationals_FM.test(n, Pi_bits)
-pi_test
 ```
 
+Dla pierwszych $n=2^{20}$ wyrazów liczby $\pi$ w zapisie bitowym $p$-wartość uzyskana we *Frequency Monobit* Teście wyniosła `r pi_test[[2]]`. Wynik ten sugeruje, że należy przyjąć hipotezę o losowości badanych bitów.
 
-Dla pierwszych $n=2^{32}$ wyrazów liczby $\pi$ w zapisie bitowym  
-
-```{r}
-irrationals_FM.test(10, Pi_bits)[[2]]
-length(Pi_bits)
-
-hist(irrationals_FM.test.p_vals(10000, 1000, Pi_bits))
-
-
-irrationals_FM.test.p_vals(1000, 10, Pi_bits)
-
+```{r Pi FM test wynik 1000}
+reps = 10^3
+n = floor(length(Pi_bits)/reps)
+pi_test <-irrationals_FM.test(n, Pi_bits)
 ```
+Podobnie przy rozpatrzeniu mniejszej próby pierwszych $n$ = `r n` bitów z rozwinięcia liczby $\pi$ otrzymano $p$-wartość `r pi_test[[2]]`, która również potwierdza hipotezę o losowości bitów.
 
-### Second-level testing
-
-Zauważmy, że dla prawdziwie losowej próby p-wartość otrzymana w teście jest zmienną loswą o rozkładzie $\mathcal{U}(0,1)$. Każdą liczbę z przedziału $(0,1)$ możemy przedstawić w systemie binarnym jako 
-$$p_{val} = 0.b_1b_2b_3b_4... := \sum_{i=1}^\infty b_i\cdot2^{-i},$$
-gdzie dla każdego $i\in\{1,2,3...\}$ zachodzi $b_i \in \{0,1\}$.
-Weźmy obcięcie tego szeregu do długości $n$.
-$$p_{val}^n =0.b_1b_2b_3b_4...b_n := \sum_{i=1}^n b_i\cdot2^{-i}.$$
-
-Można pokazać indukcyjnie, że gdy $p_{val} \sim \mathcal U(0,1)$ to $\{b_i\}_{i=1}^n$ jest ciągiem losowych bitów dlugości $n$.
-
-$$1^o\quad p_{val} \sim \mathcal U(0,1) \implies \mathbb P(p_{val}<2^{-1}) = \mathbb P(b_1 = 0) = \frac{1}{2} = \mathbb P(p_{val}\geq 2^{-1}) = P(b_1 = 0) $$
-$$2^o \quad założenie:  \mathbb P(b_{i-1} = 0) = \frac{1}{2},\quad\quad teza: \mathbb P(b_i = 0) = \frac{1}{2}$$
-$$\mathbb P(b_i = 0) = \mathbb P(b_i = 0|b_{i-1} = 1) + \mathbb P(b_i = 0|b_{i-1} = 0)  idk czy tak$$
-$$b_i = 1 \iff p_{val} - \sum_{k=1}^i b_k\cdot2^{-k} \geq 2^{-i}$$
-wartość różnicy $p_{val} - \sum_{k=1}^i b_k\cdot2^{-k}$ należy do przedziału $\left[0,2^{-(i-1)}\right]$, a ponieważ $p_{val}$ była rozłożona jednostajnie, to 
-$P(b_i = 1) = \frac{1}{2}$.$\quad\quad\quad\quad\quad\quad\mathbb{C.K.D.}$ 
-
-```{r}
-
+Ponieważ plik źródłowy zawiera jedynie `r length(Pi_bits)` bitów, podczas przeprowadzania *second-level testing* doświadczenie testowania losowości ciągu długości $n$ = `r n` powrórzono $R= 10^3$ razy.
+```{r Pi FM test wynik lvl2}
+reps = 10^3
+n = floor(length(Pi_bits)/reps)
+for(i in 3:24)
+print(irrationals_FM.test.lvl2(n, reps, Pi_bits, i))
 ```
-
 
 
 # Źródła
