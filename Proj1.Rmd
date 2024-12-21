@@ -2,9 +2,12 @@
 title: "MC-Proj1"
 author: "Alicja Wiączkowska"
 date: "2024-11-22"
-output: pdf_document
+output:
+  pdf_document: 
+    toc: yes
+    toc_depth: '3'
 ---
-
+\newpage
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 knitr::opts_chunk$set(cache = T)
@@ -15,7 +18,65 @@ library(readr)
 library(collapse)
 ```
 
+# Testy 
+
+  *opis /wstęp,1 i 2 lvl ltesting czym jest* 
+   
+## Frequency Monobit Test   
+  
+Test ten opiera się na badaniu częstości występowania zer i jedynek w zadanym ciągu bitów. 
+W pierwszym kroku każdy z bitów $b_i$ jest przekształcany do elementu zbioru $\{-1,1\}$ funkcją $x_i = 2b_i+1$.
+Statystyka testowa ma postać
+$$T_n^{obs} = \frac{1}{\sqrt n} \sum_{i=1}^n x_i $$ 
+Z Centralnego Twierdzenia Granicznego przy rosnącym $n$ statystyka ta zbiega według rozkładu do $\mathcal N(0,1)$, z czego można wywnioskować, że $p$-wartość w przybliżeniu wynosi
+$$p_{val} := \mathbb P(|T_n^{teoret}| > |T_n^{obs}|) \approx \mathbb P(|N| > |T_n^{obs}|) = 2\cdot\left(1-\phi(|T_n^{obs}|)\right)$$
+
+### Second-level testing  
+
+Zauważmy, że dla prawdziwie losowej próby p-wartość otrzymana w teście jest zmienną loswą o rozkładzie $\mathcal{U}(0,1)$. Każdą liczbę z przedziału $(0,1)$ możemy przedstawić w systemie binarnym jako 
+$$p_{val} = 0.b_1b_2b_3b_4... := \sum_{i=1}^\infty b_i\cdot2^{-i},$$
+gdzie dla każdego $i\in\{1,2,3...\}$ zachodzi $b_i \in \{0,1\}$.
+Weźmy obcięcie tego szeregu do długości $n$.
+$$p_{val}^n =0.b_1b_2b_3b_4...b_n := \sum_{i=1}^n b_i\cdot2^{-i}.$$
+
+Można pokazać indukcyjnie, że gdy $p_{val} \sim \mathcal U(0,1)$ to $\{b_i\}_{i=1}^n$ jest ciągiem losowych bitów dlugości $n$.
+
+$$1^o\quad p_{val} \sim \mathcal U(0,1) \implies \mathbb P(p_{val}<2^{-1}) = \mathbb P(b_1 = 0) = \frac{1}{2} = \mathbb P(p_{val}\geq 2^{-1}) = P(b_1 = 0) $$
+$$2^o \quad założenie:  \mathbb P(b_{i-1} = 0) = \frac{1}{2},\quad\quad teza: \mathbb P(b_i = 0) = \frac{1}{2}$$
+$$b_i = 1 \iff p_{val} - \sum_{k=1}^i b_k\cdot2^{-k} \geq 2^{-i}$$
+wartość różnicy $p_{val} - \sum_{k=1}^i b_k\cdot2^{-k}$ należy do przedziału $\left[0,2^{-(i-1)}\right]$, a ponieważ $p_{val}$ była rozłożona jednostajnie, to 
+$P(b_i = 1) = \frac{1}{2}$.$\quad\quad\quad\quad\quad\quad\mathbb{C.K.D.}$ 
+
+
+## Test $\chi^2$ 
+  
+```{r chisq.test.unif}
+chisq.test.unif<-function(wek, n_groups){
+  # wek - supposed random vector
+  # n_groups - number of buckets 
+  group_labels <- cut(wek, breaks = seq(0, 1, length.out = n_groups+1), 
+                      include.lowest = TRUE)
+  levels(group_labels) <- as.character((1:n_groups))
+  group_frequencies <- table(group_labels)
+
+  expected_frequencies <- rep(length(wek) / n_groups, n_groups) 
+  chi_square_result <- chisq.test(group_frequencies, 
+                      p = expected_frequencies / sum(expected_frequencies))
+  length(group_frequencies)
+  return(chi_square_result)
+}
+```
+
+
+ 
+
+## Test Pokerowy  
+ 
+ 
+
 # Generatory
+
+
 ## LCG
 
 *tekst*
@@ -32,9 +93,17 @@ LCG<-function(n, M,a,c, x){
 ```
 
 
-```{r LCG2}
-LCG(20, 13,1,5, 0)
-LCG(10, 2^10,3,7, 0)
+```{r LCG data}
+n=2**20
+lcg1 <- LCG(n, 13,1,5, 0)
+lcg2 <- LCG(n, 2^10,3,7, 0)
+```
+
+```{r}
+lcg2u<-lcg2/2^10
+t= chisq.test.unif(lcg2u, 10)
+t= chisq.test.unif(lcg2u, 512)
+t
 ```
 
 
@@ -159,6 +228,7 @@ freq.monobit.test<-function(bits){
 ```
 
 
+   
 ```{r Konwersja int - 5bit}
 
 int5bit<-function(x){int2bit(x)[1:5]} #dla liczb
@@ -199,32 +269,10 @@ for(r in 1:reps){
 
 # Liczby niewymierne 
 
-W tej części pracy zbadamy losowość liczb niewymiernych :$\pi$, $e$ oraz $\sqrt 2$ przy pomocy Frequency Monobit testu. Narzędzie to służy do badania ciągach bitów, dlatego wykorzystano rozwinięcia liczb zapisane w systemie binarnym.
+W tej części pracy zbadane zostanie czy kolejne bity rozwinięcia dwójkowego liczb niewymiernych: $\pi$, $e$ oraz $\sqrt 2$ można traktować jako pewien generator liczb pseudolosowych.
+Wykorzystantego zostanie *Frequency Monobit* test służący do badania losowości ciągów bitów.
 
-### Frequency Monobit Test  
 
-Test ten opiera się na badaniu częstości występowania zer i jedynek w zadanym ciągu bitów. 
-W pierwszym kroku każdy z bitów $b_i$ jest przekształcany do elementu zbioru $\{-1,1\}$ funkcją $x_i = 2b_i+1$.
-Statystyka testowa ma postać
-$$T_n^{obs} = \frac{1}{\sqrt n} \sum_{i=1}^n x_i $$ 
-Z Centralnego Twierdzenia Granicznego przy rosnącym $n$ statystyka ta zbiega według rozkładu do $\mathcal N(0,1)$, z czego można wywnioskować, że $p$-wartość w przybliżeniu wynosi
-$$p_{val} := \mathbb P(|T_n^{teoret}| > |T_n^{obs}|) \approx \mathbb P(|N| > |T_n^{obs}|) = 2\cdot\left(1-\phi(|T_n^{obs}|)\right)$$
-
-### Second-level testing
-
-Zauważmy, że dla prawdziwie losowej próby p-wartość otrzymana w teście jest zmienną loswą o rozkładzie $\mathcal{U}(0,1)$. Każdą liczbę z przedziału $(0,1)$ możemy przedstawić w systemie binarnym jako 
-$$p_{val} = 0.b_1b_2b_3b_4... := \sum_{i=1}^\infty b_i\cdot2^{-i},$$
-gdzie dla każdego $i\in\{1,2,3...\}$ zachodzi $b_i \in \{0,1\}$.
-Weźmy obcięcie tego szeregu do długości $n$.
-$$p_{val}^n =0.b_1b_2b_3b_4...b_n := \sum_{i=1}^n b_i\cdot2^{-i}.$$
-
-Można pokazać indukcyjnie, że gdy $p_{val} \sim \mathcal U(0,1)$ to $\{b_i\}_{i=1}^n$ jest ciągiem losowych bitów dlugości $n$.
-
-$$1^o\quad p_{val} \sim \mathcal U(0,1) \implies \mathbb P(p_{val}<2^{-1}) = \mathbb P(b_1 = 0) = \frac{1}{2} = \mathbb P(p_{val}\geq 2^{-1}) = P(b_1 = 0) $$
-$$2^o \quad założenie:  \mathbb P(b_{i-1} = 0) = \frac{1}{2},\quad\quad teza: \mathbb P(b_i = 0) = \frac{1}{2}$$
-$$b_i = 1 \iff p_{val} - \sum_{k=1}^i b_k\cdot2^{-k} \geq 2^{-i}$$
-wartość różnicy $p_{val} - \sum_{k=1}^i b_k\cdot2^{-k}$ należy do przedziału $\left[0,2^{-(i-1)}\right]$, a ponieważ $p_{val}$ była rozłożona jednostajnie, to 
-$P(b_i = 1) = \frac{1}{2}$.$\quad\quad\quad\quad\quad\quad\mathbb{C.K.D.}$ 
 ```{r pobieranie dnych z pliku, message=FALSE}
 import_bits<-function(path){
   data <-read_csv(path,col_names = FALSE)
@@ -303,23 +351,166 @@ n=2**20
 pi_test <-irrationals_FM.test(n, Pi_bits)
 ```
 
-Dla pierwszych $n=2^{20}$ wyrazów liczby $\pi$ w zapisie bitowym $p$-wartość uzyskana we *Frequency Monobit* Teście wyniosła `r pi_test[[2]]`. Wynik ten sugeruje, że należy przyjąć hipotezę o losowości badanych bitów.
+Dla pierwszych $n$ = `r length(Pi_bits)` wyrazów liczby $\pi$ w zapisie bitowym $p$-wartość uzyskana we *Frequency Monobit* Teście wyniosła `r pi_test[[2]]`. Wynik ten sugeruje, że nie ma podstaw by odrzucać hipotezę o losowości badanych bitów.
 
 ```{r Pi FM test wynik 1000}
 reps = 10^3
 n = floor(length(Pi_bits)/reps)
 pi_test <-irrationals_FM.test(n, Pi_bits)
 ```
-Podobnie przy rozpatrzeniu mniejszej próby pierwszych $n$ = `r n` bitów z rozwinięcia liczby $\pi$ otrzymano $p$-wartość `r pi_test[[2]]`, która również potwierdza hipotezę o losowości bitów.
+Podobnie przy rozpatrzeniu mniejszej próby pierwszych $n$ = `r n` bitów z rozwinięcia liczby $\pi$ otrzymano $p$-wartość `r pi_test[[2]]`, która również nie zaprzecza hipotezie o losowości i jednostajnym rozkładzie bitów.
 
-Ponieważ plik źródłowy zawiera jedynie `r length(Pi_bits)` bitów, podczas przeprowadzania *second-level testing* doświadczenie testowania losowości ciągu długości $n$ = `r n` powrórzono $R= 10^3$ razy.
+Ponieważ plik źródłowy zawiera jedynie `r length(Pi_bits)` bitów, podczas przeprowadzania *second-level testing* doświadczenie testowania ciągu długości $n$ = `r n` powrórzono $R= 10^3$ razy. Następnie aby na uzyskanych w ten sposób $p$-wartościach wykonać *Frequency Monobit Test*,  każdą z nich zapisano jako szereg bitów i wybrano pierwsze $k$ z nich (przekształcając funkcją $f_k$):
+$$f_k:[0,1]\rightarrow\{0,1\}^k  \quad\quad\quad
+f_k(p_{val}) = f_k\left(\sum_{i=1}^\infty b_i\cdot 2^{-i}\right) = (b_1,b_2,..,b_k), $$
+a następnie uzyskane w ten sposób wektory połączono jeden, który poddano testowaniu. Wyniki dla wybranych $k$ przedstawiono w poniższej tabeli.
+
 ```{r Pi FM test wynik lvl2}
-reps = 10^3
+reps = 10^4
 n = floor(length(Pi_bits)/reps)
-for(i in 3:24)
-print(irrationals_FM.test.lvl2(n, reps, Pi_bits, i))
+
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('Bts len','Test statistic', 'p-value')
+lens = c(1,2,3,4,5,6,7,8,9,10,11)
+for(i in 1:length(lens)){
+  len=lens[i]
+  t = irrationals_FM.test.lvl2(n, reps, Pi_bits, len)
+  d[i,] <- unname(c(len,t)) 
+}
 ```
 
+```{r Pi FM test wynik lvl2 table}
+d$'p-value' <- as.character(signif(d$'p-value'))
+d[d$'p-value' =='0',3] <- '0.0000000'
+colnames(d) <- c('k - długość 1 wektora bitów', "statystyka testowa", 'p-wartość')
+knitr::kable(d, caption = "second level testiong - pi")
+
+```
+
+
+```{r Pi FM test wynik lvl2 chi sq}
+Pi_p_vals = irrationals_FM.test.p_vals(n, reps, Pi_bits)
+Pi_p_vals_chisq = chisq.test.unif(Pi_p_vals,10)
+```
+
+Uzyskane $p$-wartości w testowniu drugopoziomowym są bardzo małe, w niektórych przypadkach autmatycznie zaokrąglone do zera. Przy ustalonym poziomie istotności $\alpha = 0.05$ hipoteza zerowa zakładająca, że $p$-wartości pochodzące z pierwszopoziomowego testowania pochodzą z rozkładu $\mathcal U(0,1)$ zostanie odrzucona dla wszystkich $k$.
+
+Również po poddaniu testowi $\chi^2$ z 10 jednakowymi kubełkami badanych $p$-wartości pochodzących z pierwszopoziomowego testowania *Frequency Monobit* testem, otrzymano ostateczną $p$-wartość wynoszącą mniej niż $2.2\cdot10^{-16}$.
+
+Można zatem stwierdzić, że również w tym przypadku, mimo dobrych wyników uzyskanych podczas *first level testing*, ostatecznie należy uznać, że bitów liczby $\pi$ nie można traktować jako dobry generator liczb z rozkładu jednostajnego na zbiorze {0,1}, co wynika jednoznacznie z *second-level testing*. 
+
+
+
+## Bity $e$ - Frequency Monobit Test
+
+```{r e FM test wynik}
+n=2**20
+e_test <-irrationals_FM.test(n, e_bits)
+```
+
+Dla pierwszych $n$ = `r length(e_bits)` wyrazów liczby $e$ w zapisie bitowym $p$-wartość uzyskana we *Frequency Monobit* Teście była wysoka - wyniosła `r e_test[[2]]`. Wynik ten nie daje podstaw do stwierdzenia, że bity pochodzące z rozwnięcia dwójkowego $e$ nie są losowymi bitami rozłożonymi jednostajnie na {0,1}.
+
+```{r e FM test wynik 1000}
+reps = 10^3
+n = floor(length(e_bits)/reps)
+e_test <-irrationals_FM.test(n, e_bits)
+```
+Przy rozpatrzeniu mniejszej próby pierwszych $n$ = `r n` bitów z rozwinięcia liczby $e$ otrzymano znacznie mniejszą $p$-wartość `r e_test[[2]]`, która jednak przy istotności $\alpha=0.05$ nie prowadzi do odrzucenia hipotezy o pochodzeniu rozważanych bitów z rozkładu jednostajnego na {0,1}.
+
+Ponieważ plik źródłowy zawiera jedynie `r length(e_bits)` bitów, podczas przeprowadzania *second-level testing* doświadczenie testowania ciągu długości $n$ = `r n` powrórzono $R= 10^3$. Następnie aby na uzyskanych w ten sposób $p$-wartościach wykonać *Frequency Monobit Test*,  każdą z nich zapisano jako szereg bitów i wybrano pierwsze $k$ z nich (jak wcześniej przekształcając funkcją $f_k$),a następnie uzyskane w ten sposób wektory połączono jeden, na którym przeprowadzono test. Wyniki dla wybranych $k$ przedstawiono w poniższej tabeli.
+
+```{r e FM test wynik lvl2}
+reps = 10^4
+n = floor(length(e_bits)/reps)
+
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('Bts len','Test statistic', 'p-value')
+lens = c(1,2,3,4,5,6,7,8,9,10,11)
+for(i in 1:length(lens)){
+  len=lens[i]
+  t = irrationals_FM.test.lvl2(n, reps, e_bits, len)
+  d[i,] <- unname(c(len,t)) 
+}
+```
+
+```{r e FM test wynik lvl2 table}
+d$'p-value' <- as.character(signif(d$'p-value'))
+d[d$'p-value' =='0',3] <- '0.0000000'
+colnames(d) <- c('k - długość 1 wektora bitów', "statystyka testowa", 'p-wartość')
+
+knitr::kable(d, caption = "second level testiong - e" )
+
+```
+
+
+```{r e FM test wynik lvl2 chi sq}
+e_p_vals = irrationals_FM.test.p_vals(n, reps, e_bits)
+e_p_vals_chisq = chisq.test.unif(e_p_vals,10)
+```
+
+Ostatecznie uzyskane $p$-wartości są małe, w niektórych przypadkach tak małe, że zostały autmatycznie zaokrąglone do zera. Przy ustalonym poziomie istotności $\alpha = 0.05$ Hipoteza zerowa o losowości $p$-wartości pochodzących z pierwszopoziomowego testowania zostanie odrzucona we wszystkich przypadkach poza $k=1$.
+
+Ponadto gdy $p$-wartości otrzymane podczas pierwszopoziomowego testowania poddano testowi $\chi^2$ z 10 jednakowymi kubełkami otrzymano ostateczną $p$-wartość wynoszącą mniej niż $2.2\cdot10^{-16}$.
+
+Można zatem stwierdzić, że mimo dobrych wyników uzyskanych podczas *first level testing*, ostatecznie należy uznać, że bitów liczby $e$ nie można traktować jako dobry generator liczb z rozkładu jednostajnego na zbiorze {0,1}.
+
+
+## Bity $\sqrt 2$ - Frequency Monobit Test
+
+```{r sqrt2 FM test wynik}
+n=2**20
+sq2_test <-irrationals_FM.test(n, sqrt2_bist)
+```
+
+Dla pierwszych $n$ = `r length(sqrt2_bist)` wyrazów liczby $\sqrt 2$ w zapisie bitowym po przeprowadzeniu *Frequency Monobit* Tesu, uzyskana $p$-wartość  wyniosła aż `r sq2_test[[2]]` co sugeruje, że nie ma podstaw do odrzucenia hipotezy o pochodzeniu badanych bitów z rozkładu jednostajnego na {0,1}.
+
+```{r sqrt2 FM test wynik_1000}
+reps = 10^3
+n = floor(length(sqrt2_bist)/reps)
+sq2_test <-irrationals_FM.test(n, sqrt2_bist)
+```
+Podobnie przy rozpatrzeniu mniejszej próby pierwszych $n$ = `r n` bitów z rozwinięcia liczby $\sqrt 2$ otrzymano $p$-wartość `r sq2_test[[2]]`, która również nie zaprzecza hipotezie o losowości bitów.
+
+Ponieważ plik źródłowy zawiera jedynie `r length(sqrt2_bist)` bitów, podczas przeprowadzania *second-level testing* doświadczenie testowania ciągu długości $n$ = `r n` powrórzono $R= 10^3$. Następnie każdą $p$-wartości z testowania pierwszopoziomowego przekształcono funkcją $f_k$,
+a następnie uzyskane w ten sposób wektory połączono jeden, na którym przeprowadzono *Frequency Monobit Test*. Wyniki dla wybranych $k$ przedstawiono w poniższej tabeli.
+
+```{r sqrt2 FM test wynik lvl2}
+reps = 10^4
+n = floor(length(sqrt2_bist)/reps)
+
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('Bts len','Test statistic', 'p-value')
+lens = 1:15
+for(i in 1:length(lens)){
+  len=lens[i]
+  t = irrationals_FM.test.lvl2(n, reps, sqrt2_bist, len)
+  d[i,] <- unname(c(len,t)) 
+}
+```
+
+```{r sqrt2 FM test wynik lvl2 table}
+d$'p-value' <- as.character(signif(d$'p-value'))
+d[d$'p-value' =='0',3] <- '0.0000000'
+colnames(d) <- c('k - długość 1 wektora bitów', "statystyka testowa", 'p-wartość')
+knitr::kable(d, caption = "second level testiong - sqrt 2")
+
+
+
+```
+
+
+```{r sqrt2 FM test wynik lvl2 chi sq}
+sq2_p_vals = irrationals_FM.test.p_vals(n, reps, sqrt2_bist)
+sq2_p_vals_chisq = chisq.test.unif(sq2_p_vals,10)
+```
+
+Ostatecznie dla większości $k$ uzyskane $p$-wartości przeważnie są bardzo małe, a często autmatycznie zaokrąglone przez komputer do zera, choć dla $k =8$ $p$-wartość przekroczyła 0.4, a dla  $k =10$ wyniosła aż ponad 0.7. Przy ustalonym poziomie istotności $\alpha = 0.05$ w większości przypadków hipoteza zerowa zostanie jednak odrzucona.
+
+Ponadto gdy $p$-wartości otrzymane podczas pierwszopoziomowego testowania poddano testowi $\chi^2$ z 10 jednakowymi kubełkami, finalna $p$-wartość wyniosła mniej niż $2.2\cdot10^{-16}$.
+
+Można zatem stwierdzić, że mimo dobrych wyników uzyskanych podczas *first level testing*, ostatecznie należy uznać, że bitów liczby $\sqrt 2$ nie można traktować jako dobry generator liczb z rozkładu jednostajnego na zbiorze {0,1}.
+
+# Tabela końcowa - wykorzystane funkcje  
 
 # Źródła
 https://ipsec.pl/files/ipsec/ving-krypto.pdf   str 7
