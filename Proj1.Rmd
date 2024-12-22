@@ -20,8 +20,12 @@ library(collapse)
 
 # Testy 
 
-  *opis /wstęp,1 i 2 lvl ltesting czym jest* 
+W celu zbadania czy dany generator zwraca liczby pseudolosowe, które można interpretować jako realizacje rozkładu jednostajnego na pewnym zbiorze - uzyskane liczby poddaje się testom zrwacającym wynik: $p$-wartość. Zazwyczaj przy ustalonym poziomie istotności, który w tym projekcie został ustalony jako  $\alpha=0.05$ hipotezę zerową o pochodzeniu liczb pseudolosowych z zadanego rozkładu odrzuca się przy uzyskaniu $p$-wartości poniżej $\alpha$. Jest to tzw. pierwszopoziomowe (*first level testing*).
+
+Warto jednak zauważyć, że przy prawdziwych realizacjach liczb losowych z rozkładu jednostajnego, $p$-wartości są liczbmi losowymi o rozkładzie $\mathcal U(0,1)$. Można zatem sprawdzić również hipotezę o losowości i jednostajnym rozkładzie  $p$-wartości uzyskanych przy wielokrotnym powrórzeniu *first level testing*.  Ostatecznym wynikiem będzie $p$-wartość wynikająca z przeprowadzenia tzw. testowania drugopoziomowego (*second level testing*).
    
+Przy testowaniu pierwszopoziomowym test przeprowadzano na próbie wielkości $n=2^{20}$.  
+  
 ## Frequency Monobit Test   
   
 Test ten opiera się na badaniu częstości występowania zer i jedynek w zadanym ciągu bitów. 
@@ -95,11 +99,16 @@ chisq.test.ints<-function(wek, M){
  
 
 ## Test Pokerowy  
+Test pokerowy w pierwszym kroku wymaga przyporządkowania obserwacji do $k$ kubełków (jeśli generator zwraca liczby naturalne ze zbioru$\{0,1,2,...,M-1\}$, za osobny kubełek możemy uznać każdą z możliwych do uzyskania wartości), które można interpretować jako karty. Następnie dany ciąg kart należy podzielić w piątki, a następnie każdej z nich przyporządkować układ analogiczny do tych z gry w pokera. Badane jest ile piątek spełnia jeden z poszczególnych układów pokerowych: 5 różnych kart, 4 różne karty (1 para), 3 różne karty (2 pary lub trójka), 2 różne karty (full lub kreta), 1 rodzaj karty.  
+  
+Następnie uzyskane wyniki są porównywane z przewidywanymi częstotliwościami teretycznymi w teście $\chi^2$.
 
 ## Test Kolmogorowa-Smirnowa  
-Jest to test opierający się na porównywaniu dystrybuanty empirycznej z teoretyczną. 
+Test Kolmogorowa-Smirnowa wiąże się z badaniem rozkładów ciągłych. Jest to test opierający się na porównywaniu dystrybuanty empirycznej z teoretyczną. 
 Dystrybuantę empiryczną wyznaczyć można na podstawie obserwacji $X_1,X_2,...,X_n$ korzystając ze wzoru $\hat F(x)=\frac{1}{n} \sum_{i=1}^n\mathbf 1(X_i <x)$. 
-Statystyka testowa to $$ \hat D_n =\sqrt n\cdot \underset{x\in \mathbb R}{sup} \ |\hat F_n(x)-F(x)|$$. Przy $n$ dążącym do nieskończoności rozkład $ \hat D_n$ zbiega do znanego tzw. rozkładu Kołogorowa - Smirnowa.
+Statystyka testowa to 
+$$\hat D_n =\sqrt n\cdot \underset{x\in \mathbb R}{sup} \ | \hat F_n(x)-F(x)|.$$
+Przy $n$ dążącym do nieskończoności rozkład $\hat D_n$ zbiega do znanego tzw. rozkładu Kołogorowa - Smirnowa.
 
 
 # Generatory
@@ -108,7 +117,7 @@ Statystyka testowa to $$ \hat D_n =\sqrt n\cdot \underset{x\in \mathbb R}{sup} \
  
 $LCG$ jest jednym z najprostszych generatorów liczb pseudolosowych ze zbioru liczb naturalnych $\{0,...,M-1\}$. Generowanie ciągu liczb $x_1,x_2...,x_N$ z $LCG(M,a,c)$ przy zadanym ziarnie $x_0$ opiera się na algorytmie:
 $$ x_n = (a\cdot x_{n-1} +c)\ mod\ M .$$
-Rozważone zostaną dwa przykłady tego generatora $LCG(13, 1, 5)$ oraz $LCG(2^{10}, 3, 7)$. Testy zostaną przeprowadzone na próbie $2^{20}$ liczb pseudolosowych. Za ziarno przyjęto $x_0=0$.
+Rozważone zostaną dwa przykłady tego generatora $LCG(2**10, 1, 5)$ oraz $LCG(2^{10}, 3, 7)$. Testy zostaną przeprowadzone na próbie $2^{20}$ liczb pseudolosowych. Za ziarno przyjęto $x_0=0$.
 
 ```{r LCG}
 LCG<-function(n, M,a,c, x){
@@ -129,6 +138,7 @@ lcg1 <- LCG(n, 13,1,5, 0)
 lcg2 <- LCG(n, 2^10,3,7, 0)
 ```
 
+  
 ```{r LCG data lvl2}
 n=2**15
 reps = 10**3
@@ -158,14 +168,14 @@ Nie jest to dobry generator liczb pseudolosowych. Dla ziarna $x_0=0$ okres gener
   
 #### Test $\chi^2$  
 
-```{r lcg1 chisq 13 }
+```{r lcg1 chisq 13}
 lcg1u<-lcg1/13
 t= chisq.test.ints(lcg1, 13)
 ```
   
-```{r lcg1 chisq }
+```{r lcg1 chisq}
 lcg1u<-lcg1/13
-t= chisq.test.unif(lcg1u, 26)
+t= chisq.test.unif(lcg1u, 10)
 ```
   
 Najpierw wygenerowano $n = 2^{20}$ liczb pseudolosowych.
@@ -178,50 +188,170 @@ p_vals <- lvl2.p_vals(n, reps, lcg1.lv2 ,function(v){chisq.test.ints(v,13)})
 t=chisq.test.unif(p_vals, 10)
 
 ```
-Ze względu na ograniczenia pamięci doświadczenie testowania $n=2^{17}$ powtórzono $R=10^3$ razy, a następnie na uzyskanym wektorze $p$-wartości przeprowadzono test $chi^sq$. Test wskazał finalną $p$-wartość poniżej $2.2\cdot 10^{-16}$ zarówno dla liczby kubełków $k=13$ jak i $k=10$. Wynika to z faktu, że wszystkie $p$-wartości wskazują wartość 1, co zdecydowanie zaprzecza tezie o losowości i jednostajnym rozkładzie pierwszopoziomowych $p$-wartości na zbiorze $[0,1]$.
+
+
+Ze względu na ograniczenia pamięci doświadczenie testowania $n=2^{17}$ powtórzono $R=10^3$ razy, a następnie na uzyskanym wektorze $p$-wartości przeprowadzono test $\chi^2$. Test wskazał finalną $p$-wartość poniżej $2.2\cdot 10^{-16}$ zarówno dla liczby kubełków $k=13$ jak i $k=10$. Wynika to z faktu, że wszystkie $p$-wartości wskazują wartość 1, co zdecydowanie zaprzecza tezie o losowości i jednostajnym rozkładzie pierwszopoziomowych $p$-wartości na zbiorze $[0,1]$.
 Według testu $\chi^2$, $LCG(13, 1, 5)$ nie można uznać za dobry generator liczb pseudolosowych.
 
 #### Test Pokerowy   
 
-```{r lcg1 poker }
+```{r lcg1 poker}
 n=2**20-1
 lcg1p <- LCG(n, 13,1,5, 0)/13
-t= poker.test(lcg1p)
+t <- poker.test(lcg1p, echo=F)
 ```
-Ciąg liczb poddany testowi $\chi^2$ 
+Ciąg liczb poddany testowi pokerowemu musi mieć długość podzielną przez 5. Pierwszopoziomowe testownie wykonano zatem na próbie $n = 2^{20}-1$ = `r n` liczb pseudolosowych. Już w testowaniu pierwszopoziomowym uzyskano $p$-wartość zbliżoną do zera. Wynika to z m.in. faktu, że generator $LCG(13, 1, 5)$ nie zwrócił żadnego układu 5 ani 4 takich samych "kart".
 
-  
-```{r lcg1 poker lvl2}
-n = 2**20
+```{r lcg1 poker lvl2 pvals}
+n = 2^15-3
 reps = 10^3
-#p_vals <- lvl2.p_vals(n, reps,lc1.lv2, poker.test)
+p_vals <- lvl2.p_vals(n, reps, lcg1.lv2/13 ,function(v){poker.test(v,echo=F)})
 ```
 
-#### Test Kolmogorova-Smirnova  
+
+```{r lcg1 poker lvl2}
+t=poker.test(p_vals, echo=F)
+```
+
+W testowaniu drugopoziomowym ze względu na ograniczenia pamięci doświadczenie testownia próby wielkości $n=2^{15}-3$ = `r n`  powtórzono $R = 10^3$ razy. Również w drugopoziomowym teście otrzymano $p$-wartość zbliżoną do zera. Praktycznie wszystkie układy p-wartości zostały zakwalifikowane jako "5 takich samych kart", co oznacza, że p-wartości były sobie bardzo bliskie (i wynosiły w przybliżeniu 0). Test pokerowy jednoznacznie stwierdza, że $LCG(13, 1, 5)$ nie jest dobrym generatorem liczb losowych.
+
+#### Test Kolmogorowa-Smirnowa  
+
+W teście Kolmogorowa-Smirnowa odpowiednią praktyką jest wykorzystanie niepowtarzających się liczb, dlatego wielkość próby w pierwszopoziomowym teście może wynieść maksymalnie $n=13$. Będziemy badać czy liczby wygenerowane przez $LCG(13,1,5)$ po znormalizowaniu dzieleniem przez $M=13$ można traktować jako realizacje rozkładu $\mathcal U(0,1)$.
 
 
 ```{r lcg1 KS }
-t= ks.test(lcg1u,punif)
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('n','statystyka testowa', 'p-wartość')
+for(n in 1:13){
+  t= ks.test(LCG(n, 13,1,5, 0)/13,punif)
+  d[n,] <- unname(c(n,t$statistic, t$p.value))
+}
 ```
+
+Wyniki pierwszopoziomowego testu przedstawiono w tabeli. Ponieważ każda z liczb wygenerowanych przez $LCG$ występuje tyle samo razy, przy tak niewielu liczbach pseudolosowych otrzymano bardzo wysokie $p$-wartości.
+```{r lcg1 ks lv1 table}
+knitr::kable(d, caption ="LCG(13,1,5) - first level testing")
+```
+
+
+```{r lcg1 KS lv2,warning=F}
+reps=1000
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('n','statystyka testowa', 'p-wartość')
+for(n in 1:13){
+  pv= lvl2.p_vals(n,reps,LCG(n*reps, 13,1,5, 0)/13, function(v){ks.test(v,punif)})
+  t= ks.test(pv,punif)
+  d[n,] <- unname(c(n,t$statistic, t$p.value))
+}
+```
+
+Natomiast w drugopoziomowym testowaniu finalne $p$-wartości w każdym przypadku były  zbliżone do zera, co było spowodowane powtarzalnością sekwencji liczb, a w skutku otrzymywaniem podobnych $p$-wartości w *first level testing*.
+
+
 ### LCG($2^{10}$, 3, 7)  
-
-#### Test $\chi^2$  
-
-```{r lcg2 chisq }
-lcg2u<-lcg2/2^10
-t= chisq.test.unif(lcg2u, 10)
+  
+```{r}
+okres = 0
+Start = lcg2.lv2[1]
+while(Start != lcg2.lv2[okres+2]){okres=okres+1}
+rm(Start)
 ```
+Okres tego generatora jest znacznie duższy niż w poprzednim przypadku. Dla $x_0=0$ wynosi on `r okres`. Przy próbkach mniejszych niż `r okres` uzyskane liczby pseudolosowe mogą wyglądć na relizacje rozkładu jednostajnego na $\{0,1,...,M-1\}$, jednak nadal generator ten nie przejdzie wszystkich testów.  
+    
+      
+#### Test $\chi^2$     
   
-#### Test Pokerowy   
-  
-#### Test Kolmogorova-Smirnova 
+Najpierw wygenerowano $n = 2^{20}$ liczb pseudolosowych.
+W pierwszopoziomowym teście przy liczbie grup $k=10$ generator $LCG(2^{10}, 3, 7)$ uzyskuje $p$-wartść mniejszą niż $2\cdot 10^{-16}$, podbnie dla $k=32$. Wynika to z faktu, że generator mając okres długości `r okres` może wygenerować tylko tyle różnych wartości ze zbioru $2^{10}$-elementowego.  
+   
+```{r lcg2 chisq, warning=F}
+lcg2u<-lcg2/2^10
+t= chisq.test.unif(lcg2u,32)
+t= chisq.test.unif(lcg2u,10)
+```
 
+
+```{r lcg2 chisq lvl2, warning=F}
+n=2**10
+reps = 10**3
+p_vals <- lvl2.p_vals(n, reps, lcg2.lv2 ,function(v){chisq.test.ints(v,13)})
+t=chisq.test.ints(p_vals, 10)
+```
+
+
+```{r lcg2 chisq lvl2 32, warning=F}
+n=2**13
+reps = 10**3
+p_vals <- lvl2.p_vals(n, reps, lcg2.lv2 ,function(v){chisq.test.ints(v,13)})
+t=chisq.test.ints(p_vals, 32)
+```
+
+Ze względu na ograniczenia pamięci doświadczenie testowania $n=2^{13}$ powtórzono $R=10^3$ razy, a następnie na uzyskanym wektorze $p$-wartości przeprowadzono test $\chi^2$. Test wskazał finalną $p$-wartość poniżej $2\cdot 10^{-16}$ zarówno dla liczby kubełków $k=32$ jak i $k=10$. Wynika to z faktu, że wszystkie $p$-wartości wskazują wartość bliską zeru, co zdecydowanie zaprzecza tezie o losowości i jednostajnym rozkładzie pierwszopoziomowych $p$-wartości na zbiorze $[0,1]$.
+Według testu $LCG(2^{10}, 3, 7)$  nie można uznać za dobry generator liczb pseudolosowych.
+
+#### Test Pokerowy   
+
+```{r lcg2 poker}
+n=2**20-1
+lcg2p <- LCG(n, 2**10,3,7, 0)/2**10
+t <- poker.test(lcg2p, echo=F)
+```
+ Pierwszopoziomowe testownie wykonano na próbie $n = 2^{20}-1$ = `r n` liczb pseudolosowych. Już w testowaniu pierwszopoziomowym uzyskano $p$-wartość zbliżoną do zera. Wynika to z m.in. faktu, że generator $LCG(2^{10}, 3, 7)$  nie zwrócił żadnego układu 5 takich samych "kart".
+
+```{r lcg2 poker lvl2 pvals}
+n = 2^15-3
+reps = 10^3
+p_vals <- lvl2.p_vals(n, reps, lcg2.lv2/2^10 ,function(v){poker.test(v,echo=F)})
+```
+
+
+```{r lcg2 poker lvl2}
+t=poker.test(p_vals, echo=F)
+```
+
+W testowaniu drugopoziomowym ze względu na ograniczenia pamięci doświadczenie testownia próby wielkości $n=2^{15}-3$ powtórzono $R = 10^3$ razy. Również w drugopoziomowym teście otrzymano $p$-wartość mozno zbliżoną do zera. Praktycznie wszystkie układy p-wartości zostały zakwalifikowane jako "5 takich samych kart", co oznacza, że p-wartości z *first level testing* były sobie bardzo bliskie (i wynosiły w przybliżeniu 0). Test pokerowy jednoznacznie stwierdza, że $LCG(2^{10}, 3, 7)$  nie jest dobrym generatorem liczb losowych.
+
+#### Test Kolmogorowa-Smirnowa  
+
+W teście Kolmogorowa-Smirnowa odpowiednią praktyką jest wykorzystanie niepowtarzających się liczb, dlatego wielkość próby w pierwszopoziomowym teście może wynieść maksymalnie $n=2^{10}$. Będziemy badać czy liczby wygenerowane przez $LCG(2^{10},3,7)$ po znormalizowaniu dzieleniem przez $M=2^{10}$ można traktować jako realizacje rozkładu $\mathcal U(0,1)$.
+
+
+```{r lcg2 KS }
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('n','statystyka testowa', 'p-wartość')
+N= 2^(3:10)
+for(i in 1:length(N)){
+  t= ks.test(LCG(N[i], 2^10,3,7, 0)/2^10,punif)
+  d[i,] <- unname(c(N[i],t$statistic, t$p.value))
+}
+```
+
+Wyniki pierwszopoziomowego testu przedstawiono w tabeli.
+```{r lcg2 ks lv1 table ,warning = F}
+knitr::kable(d, caption ="LCG(2^10,3,7) - first level testing")
+```
+Zauważmy, że gdy wielkość próby jest liczbą ze zbioru $\{2^9, 2^{10} \}$, $p-wartość$ wynosi 1, natomiast w pozostałych przypadkach przeważnie $p-wartość$ jest mniejsza niż poziom istotności $\alpha = 0.05$.
+
+```{r lcg2 KS lv2, warning=F}
+reps=1000
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('n','statystyka testowa', 'p-wartość')
+N= 2^(3:10)
+for(n in 1:length(N)){
+  pv= lvl2.p_vals(n,reps,LCG(N[n]*reps, 2^10,3,7, 0)/2^10, function(v){ks.test(v,punif)})
+  t= ks.test(pv,punif)
+  d[n,] <- unname(c(N[n],t$statistic, t$p.value))
+}
+```
+
+W drugopoziomowym testowaniu finalne $p$-wartości w każdym przypadku były  zbliżone do zera. Zarówno *first level testing* jak i *second level testing* odrzucają tezę o losowości i jednostajnym rozkładzie pseudolosowych livczb pochodzących z generatora $LCG(2^{10}, 3, 7)$.
 
 ## GLCG
-```{r rm lcg}
-rm(lcg1,lcg2,lcg1.lv2, lcg2.lv2, lcg2u, lcg1u, lcg1p, lcg2p)
-```
 
+Generator $GLCG$ jest pewnym rozszerzeniem $LCG$. 
+Przyjmuje ziarno $x_0,x_1,...,x_{k-1}$ i przy zadanych $M$ i $\{a_i\}_{i=1}^k$polega na wyznaczeniu kolejnuch liczb pseudolosowych na podstawie rekurecji:
+$$x_n =\left( \sum_{i=1}^k a_i\cdot x_{n-i} \right)\ mod\ M $$
 ```{r GLCG}
 GLCG<-function(n, M,a_wek, x_wek){
   # n - liczba generowanych liczb
@@ -248,16 +378,131 @@ reps = 10**3
 glcg.lv2 <- GLCG(n*reps,2**10, c(3,7,68), 1:3)
 ```
   
-### Test $\chi^2$  
+```{r}
+okres = 0
+Start = glcg.lv2[1]
+while(Start != glcg.lv2[okres+2]){okres=okres+1}
+rm(Start)
+```
+
+Badaniu poddano generator $GLCG\left(M=2^{10},(a_1,a_2,a_3) = (3,7,68) \right)$ z ziarnem $(x_0,x_1,x_2)= (1,2,3)$. Ma on okres `r okres`.
+
+
+#### Test $\chi^2$  
   
-### Test Pokerowy   
+```{r glcg chisq}
+glcgu <- glcg/ 2**10
+t= chisq.test.unif(glcgu, 10)
+```
+
   
-### Test Kolmogorova-Smirnova 
+```{r glcg chisq 32}
+glcgu <- glcg/ 2**10
+t= chisq.test.unif(glcgu, 32)
+```
+  
+  
+```{r glcg chisq 64}
+glcgu <- glcg/ 2**10
+t= chisq.test.unif(glcgu, 64)
+```
+
+Najpierw wygenerowano $n = 2^{20}$ liczb pseudolosowych.
+W pierwszopoziomowym teście gdy liczba grup $k$ jest dzielnikiem liczby $M=2^{10}$  generator  uzyskuje w teście $\chi^2$ $p$-wartść równą 1. *First level testing* wydaje się potwierdzać hipotezę o losowości wygenerowanych liczb (jest nawet podejrzanie za dobry).
+
+```{r glcg chisq lvl2}
+n=2**10
+reps = 10**3
+p_vals <- lvl2.p_vals(n, reps, glcg.lv2/2^10 ,function(v){chisq.test.unif(v,32)})
+t=chisq.test.unif(p_vals, 10)
+
+```
 
 
-## RC4(m)
 
-*tekst*
+Ze względu na ograniczenia pamięci w *second level testing* doświadczenie testowania $n=2^{17}$ powtórzono $R=10^3$ razy, a następnie na uzyskanym wektorze $p$-wartości przeprowadzono test $\chi^2$. Test wskazał finalną $p$-wartość poniżej $2.2\cdot 10^{-16}$. Wynika to z faktu, że wszystkie $p$-wartości wskazują wartość 1 lub bliską 1, co zdecydowanie zaprzecza tezie o losowości i jednostajnym rozkładzie pierwszopoziomowych $p$-wartości na zbiorze $[0,1]$.
+Według testu $\chi^2$, rozważanego $GLCG$ nie można uznać za dobry generator liczb pseudolosowych.
+
+#### Test Pokerowy   
+
+```{r glcg poker}
+n=2**20-1
+glcgp <- GLCG(n,2**10, c(3,7,68), 1:3)/2**10
+t <- poker.test(glcgp, echo=F)
+```
+
+
+Ciąg liczb poddany testowi pokerowemu musi mieć długość podzielną przez 5. Pierwszopoziomowe testownie wykonano zatem na próbie $n = 2^{20}-1$ liczb pseudolosowych. Już w testowaniu pierwszopoziomowym uzyskano $p$-wartość zbliżoną do zera. Jedną z przyczyn tego wyniku może być fakt, że w pseudolosowej sekwencji ułożenie w sekwencję 5 takich samych "kart" nie wystąpiło ani razu natomiast.
+
+```{r glcg poker lvl2 pvals}
+n = 2^15-3
+reps = 10^3
+p_vals <- lvl2.p_vals(n, reps, glcg.lv2/2**10 ,function(v){poker.test(v,echo=F)})
+```
+
+
+```{r glcg poker lvl2}
+t=poker.test(p_vals, echo=F)
+```
+
+W testowaniu drugopoziomowym ze względu na ograniczenia pamięci doświadczenie testownia próby wielkości $n=2^{15}-3$  powtórzono $R = 10^3$ razy. Również w drugopoziomowym teście otrzymano ostateczną $p$-wartość zbliżoną do zera. Żaden z układów $p$-wartości nie został zakwalifikowane jako "5 różnych kart" ani "4 różne karty" ("1 para"), co oznacza, że pierwszopoziomowych $p$-wartości nie można uznać za realizację rozkładu $\mathcal U(0,1)$.
+Test pokerowy jednoznacznie stwierdza, że rozważany $GLCG$ nie jest dobrym generatorem liczb losowych.
+
+#### Test Kolmogorowa-Smirnowa  
+
+W teście Kolmogorowa-Smirnowa odpowiednią praktyką jest wykorzystanie niepowtarzających się liczb, dlatego wielkość próby w pierwszopoziomowym teście może wynieść maksymalnie $n=2^{10}$. Będziemy badać czy liczby wygenerowane przez $GLCG\left(2^{10},(3,7,68)\right)$ po znormalizowaniu dzieleniem przez $M=2^{10}$ można traktować jako realizacje rozkładu $\mathcal U(0,1)$.
+
+
+```{r glcg KS , warning=F}
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('n','statystyka testowa', 'p-wartość')
+N= 2^(3:10)
+for(n in 1:length(N)){
+  t= ks.test(GLCG(N[n],2**10, c(3,7,68), 1:3)/2**10,punif)
+  d[n,] <- unname(c(N[n],t$statistic, t$p.value))
+}
+```
+
+Wyniki pierwszopoziomowego testu przedstawiono w tabeliponiższej. Uzyskane $p$-wartości są  wysokie. Nie dają podstaw do odrzucenia hipotezy o pochodzeniu wygenerowanych liczb z rozkładu jednostajnego.
+```{r glcg ks lv1 table}
+knitr::kable(d, caption = "GLCG(2^10,(3,7,68)) - first level testing")
+```
+
+Natomiast wyniki testowania drugopoziomowego w większości przypadków prowadzą do odrzucenia hipotezy zerowej,choć nie zawsze, o czym świadczy drugopoziomowa $p$-wartość uzyskana dla $n=2^9$.  
+  
+```{r glcg KS lv2,warning=F}
+reps=1000
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('n','statystyka testowa', 'p-wartość')
+N= 2^(3:10)
+for(n in 1:length(N)){
+  pv= lvl2.p_vals(n,reps,GLCG(reps*N[n],2**10, c(3,7,68), 1:3)/2**10, function(v){ks.test(v,punif)})
+  t= ks.test(pv,punif)
+  d[n,] <- unname(c(N[n],t$statistic, t$p.value))
+}
+```
+
+```{r glcg ks lv2 table}
+knitr::kable(d, caption ="GLCG(2^10,(3,7,68)) - second level testing")
+```
+
+
+
+## RC4(32)  
+  
+```{r rm lcg}
+rm(glcg,glcg.lv2,glcgu, glcgp) 
+```
+
+Algorytm RC4(m) jest związany z kryptografią Polega on na zainicjalizoaniu kluczem pewnej permutacji liczb ze zbioru $\{0,1,2,...,m-1\}$, a następnie powtarzania sekwecji dalszego permutowania, podczas którego jednocześnie wybierane są konkretne liczby pseudolosowe. 
+
+*Second level testing* można rozważać na 2 sposoby:
+  
+i) generująć ciąg liczb długości $R\cdot n$ 
+
+ii) powtarzająć $R$ - krotnie losowanie $n$ liczb, ze zmienionym kluczem; kluczami będą kolejne podzbiory $[m]$.
+  
+
 ```{r KSA}
 m=32
 #Key Schelduling Alghoritm
@@ -304,18 +549,6 @@ RC4<-function(n, Key=NULL, seed=c(0,0), m=32){
 }
 ```
 
-```{r}
-RC4(5); RC4(15); RC4(45)
-
-par(mfrow=c(1,2))
-hist(RC4(100)/32)
-hist(runif(100))
-
-par(mfrow=c(1,2))
-hist(RC4(1000)/32)
-hist(runif(1000))
-```
-
 ```{r all_subsets}
 all_subsets<-function(wek, max_len=NULL){
   if(is.null(max_len) || max_len > 2**length(wek)){
@@ -325,7 +558,7 @@ all_subsets<-function(wek, max_len=NULL){
   for(i in 1:length(wek)){
     if(length(result)>=max_len){break}
     result_i <- combn(wek,i, simplify = F)
-    append(result,result_i)
+    resut<-append(result,result_i)
   }
   return(result)
 }
@@ -343,20 +576,25 @@ reps = 10**3
 rc.lv2 <- RC4(n*reps, c(22,12,20,24),c(7,12),m=32)
 ```
 
-```{r RC4 data lv2 v2}
-n= 2**17
-reps = 10**3
-rc.lv2.keys <- numeric(n*reps)
-keys <- all_subsets(0:31,reps)
-for(r in 1:reps){
-  rc.lv2.keys[{(n)*(r-1)+1}:(n*r)]<-RC4(n, Key=keys[r],m=32)
+```{r RC4 1000 keys}
+keys = list()
+
+for(i in 1:32){
+  if(length(keys)>=10^3){break}
+  keys_i <- combn(0:31,i, simplify = F)
+  keys<-append(keys,keys_i)
 }
 ```
-  
-### Frequency Monobit Test  
-  
-Zauważmy, że liczby ze zbioru $[2^k] := \{0, 1, ... ,2^k-1\}$ można zapisać jako ciągi bitów długości $k$. Losując jednostajnie jedną z liczb ze zbioru $[2^k]$ otrzymujemy 8 bitów o rozkładzie jednostajnym na zbiorze $\{0,1\}$.
-  
+
+
+```{r RC4 data lv2 v2}
+n= 2**17
+reps = 10**3  
+rc.lv2.keys <- numeric(n*reps)
+for(r in 1:reps){
+  rc.lv2.keys[{(n)*(r-1)+1}:(n*r)]<-RC4(n, Key=keys[[r]],m=32)
+}
+```
 
 ```{r Frequency Monobit Test}
 freq.monobit.test<-function(bits){
@@ -390,9 +628,7 @@ int5bits<-function(x){
 
 ```{r RC(32) - Frequency Monobit Test}
 # first level testing
-n=10
-RC32_FM.test<-function(n,  Key=c(1,22,5), seed=c(0,0)){
-  rands <- RC4(n, Key, seed)
+RC32_FM.test<-function( rands){
   bits <- int5bits(rands)
   return(freq.monobit.test(bits))
 }
@@ -411,14 +647,126 @@ for(r in 1:reps){
 
 ```
 
-### Test $\chi^2$  
-  
-### Test Pokerowy   
-  
-### Test Kolmogorova-Smirnova 
+#### Test $\chi^2$  
+
+```{r rc chisq 32}
+rcu<-rc/32
+t32= chisq.test.ints(rc, 32)
+```
+
+
+Najpierw wygenerowano $n = 2^{20}$ liczb pseudolosowych.
+W pierwszopoziomowym teście przy liczbie grup $k=M=32$ generator $RC4(32)$ uzyskuje w teście $\chi^2$  przyzwoitą $p$-wartść równą `r t32$p.value`.
+
+```{r rc chisq lvl2}
+n=2**10
+reps = 10**3
+p_vals <- lvl2.p_vals(n, reps, rc.lv2 ,function(v){chisq.test.ints(v,32)})
+t=chisq.test.unif(p_vals, 10)
+
+```
+```{r}
+tp=t
+
+```
+
+
+```{r rc chisq lvl2 keys}
+n=2**10
+reps = 10**3
+p_vals.k <- lvl2.p_vals(n, reps, rc.lv2.keys ,function(v){chisq.test.ints(v,32)})
+t=chisq.test.unif(p_vals, 10)
+
+```
+
+Ze względu na ograniczenia pamięci doświadczenie testowania $n=2^{17}$ powtórzono $R=10^3$ razy, a następnie na uzyskanym wektorze $p$-wartości przeprowadzono test $\chi^2$. Test dla metody i) wskazał finalną $p$-wartość `r tp$p.value` , natomiast dla sposobu ii) wyniosła ona poniżej $2.2\cdot 10^{-16}$. Sposób i) wydaje się lepszym na *second level testing*. Przy wybraniu go, test $\chi^2$ nie daje powodów do odrzucenia hipotezy o poprawności generatora $RC4(32)$.
+
+#### Test Pokerowy   
+
+```{r rc poker}
+n=2**20-1
+rcp <- RC4(n, c(22,12,20,24),c(7,12))/32
+t <- poker.test(rcp, echo=F)
+```
+
+```{r}
+t <- poker.test(rcp, echo=F)
+```
+Ciąg liczb poddany testowi pokerowemu musi mieć długość podzielną przez 5. Pierwszopoziomowe testownie wykonano zatem na próbie $n = 2^{20}-1$ = `r n` liczb pseudolosowych. W pierwszopoziomowym testowaniu uzyskana $p$-wartość jest malutka: `r t$p.value`. Może ona być podstawą do odrzucenia hipotezy zerowej.
+
+```{r rc poker lvl2 pvals}
+n = 2^15-3
+reps = 10^3
+p_vals <- lvl2.p_vals(n, reps, rc.lv2/32 ,function(v){poker.test(v,echo=F)})
+```
+
+
+```{r rc poker lvl2 keys}
+t=poker.test(p_vals, echo=F)
+```
+W testowaniu drugopoziomowym ze względu na ograniczenia pamięci doświadczenie testownia próby wielkości $n=2^{15}-3$ = `r n`  powtórzono $R = 10^3$ razy.
+
+Dla podejścia i) rówineż drugopoziomowy test zwraca małą $p$-wartość - wynoszącą `r t$p.value`. Wynik ten osttecznie może prowadzić do odrzucenia hipotezy zerowej.
+
+```{r rc poker lvl2 pvals keys}
+n = 2^15-3
+reps = 10^3
+p_vals <- lvl2.p_vals(n, reps, rc.lv2.keys/32 ,function(v){poker.test(v,echo=F)})
+```
+
+
+```{r rc poker lvl2}
+t=poker.test(p_vals, echo=F)
+```
+Natomiast dla podejścia drugiego uzyskana $p$-wartość była zaskakująco wysoka, bo aż `r t$p.value`.
+
+Generator $RC4(32)$ niestetynie przeszedł testu pokerowego.
+
+#### Test Kolmogorowa-Smirnowa  
+
+W teście Kolmogorowa-Smirnowa odpowiednią praktyką jest wykorzystanie niepowtarzających się liczb, dlatego wielkość próby w pierwszopoziomowym teście może wynieść maksymalnie $n=32$. Będziemy badać czy liczby wygenerowane przez $RC4(32)$ po znormalizowaniu dzieleniem przez $M=32$ można traktować jako realizacje rozkładu $\mathcal U(0,1)$.
+
+
+```{r rc KS , warning = F}
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('n','statystyka testowa', 'p-wartość')
+N=5:32
+for(n in 1:length(N)){
+  t= ks.test(RC4(N[n], c(22,12,20,24),c(7,12))/32,punif)
+  d[n,] <- unname(c(N[n],t$statistic, t$p.value))
+}
+```
+
+Wyniki pierwszopoziomowego testu przedstawiono w tabeli. Dla każdej wielkości próby $n$ generator $RC4(32)$ przechodzi test Kolmogorowa-Smirnowa.
+
+```{r rc ks lv1 table, message=F}
+knitr::kable(d, caption ="RC4(32) - KS - first level testing")
+```
+
+Następnie przeprowadzono *second level testing* korzstając ze sposobu ii). Finalne $p$-wartości w każdym przypadku wyszły niesatysfakcjonująco małe. Nie jest to jednak słabość generatora, lecz problem ten został najprawdopodobniej spowodowany faktem, że prawdziwa dystrybuanta $RC4(32)$ nawet po zrzutowaniu liczb na przedział [0,1] nie dąży do dystrybuanty rozkładu $\mathcal U(0,1)$, lecz jest schodkowa.
+```{r rc KS lv2,warning=F}
+reps=1000
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('n','statystyka testowa', 'p-wartość')
+for(n in 1:32){
+  pv= lvl2.p_vals(n,reps,RC4(n*reps, c(22,12,20,24),c(7,12))/32, function(v){ks.test(v,punif)})
+  t= ks.test(pv,punif)
+  d[n,] <- unname(c(n,t$statistic, t$p.value))
+}
+```
+
+```{r rc ks lv2 table, message=F}
+knitr::kable(d, caption ="RC4(32) - KS - second level testing")
+```
+
+
+
+
 
 
 ## Mersenne Twister
+
+Algorytm ten jest domyślnym generatorem liczb losowych w Pythonie lub R. Opiera się na przyjęciu za okres tzw. liczby pierwszej Mersenne'a. Generator został zaprojektowany z myślą o metodach Monte Carlo i innych symulacjach statystycznych. Jest on uważany za szybki i skuteczny generator liczb pseudolosowych.
 
 ```{r MT data}
 mt <- runif(2^20)
@@ -430,11 +778,114 @@ reps = 10**3
 mt.lv2 <- runif(n*reps)
 ```
 
-### Test $\chi^2$  
+#### Test $\chi^2$  
+```{r mt chisq 10}
+
+tp= chisq.test.unif(mt, 10)
+```
   
-### Test Pokerowy   
+```{r mt chisq 16}
+
+t= chisq.test.unif(mt, 16)
+
+```
+  Najpierw wygenerowano $n = 2^{20}$ liczb pseudolosowych.
+W pierwszopoziomowym teście dla $k=16$ uzyskano $p$-wartość `r t$p.value`. Dla $k\in \{32, 64\}$ uzyskano $p$-wartość równą 1. Wyniki te nie prowadzą do odrzucenia hipotezy o losowości i jednostajnym rozkładzie uzyskanych liczb. Jednkże $p$-wartość uzyskana dla $k=10$ wyniosła `r tp$p.value`, co jest bardzo małą liczbą. 
+
+```{r mt chisq lvl2}
+n=2**17
+reps = 10**3
+p_vals <- lvl2.p_vals(n, reps, mt.lv2/2^10 ,function(v){chisq.test.unif(v,10)})
+t=chisq.test.unif(p_vals, 10)
+
+```
+
+```{r}
+t
+t=chisq.test.unif(p_vals, 32)
+t
+```
+
+```{r mt chisq lvl2 32}
+n=2**17
+reps = 10**3
+p_vals <- lvl2.p_vals(n, reps, mt.lv2/2^10 ,function(v){chisq.test.unif(v,32)})
+t=chisq.test.unif(p_vals, 10)
+
+```
+
+Ze względu na ograniczenia pamięci w *second level testing* doświadczenie testowania $n=2^{17}$ powtórzono $R=10^3$ razy, a następnie na uzyskanym wektorze $p$-wartości przeprowadzono test $\chi^2$ z $k=10$ i $k=32$ kubełkami. Niestety test wskazał, że finalne $p$-wartość  wyniosły poniżej $2.2\cdot 10^{-16}$. Problem ten wynika prawdopodobnie z nieoptyalnego doboru kubełków. 
+
+ 
+#### Test Pokerowy   
+
+```{r mt poker}
+n=2**20-1
+mtp <- runif(n)
+t <- poker.test(mtp, echo=F)
+```
+
+Ciąg liczb poddany testowi pokerowemu musi mieć długość podzielną przez 5. Pierwszopoziomowe testownie wykonano zatem na próbie $n = 2^{20}-1$ liczb pseudolosowych. W *first level testing* otrzymano $p$-wartość  `r t$p.value`, kóra  nie nie daje podstaw do zaprzeczenia hipotezie zerowej o losowości i jednostajnym rozkładzie wygenerowanych liczb.
+
+```{r mt poker lvl2 pvals}
+n = 2^15-3
+reps = 10^3
+p_vals <- lvl2.p_vals(n, reps, mt.lv2 ,function(v){poker.test(v,echo=F)})
+```
+
   
-### Test Kolmogorova-Smirnova 
+```{r mt poker lvl2}
+t=poker.test(p_vals, echo=F)
+```
+
+W testowaniu drugopoziomowym ze względu na ograniczenia pamięci doświadczenie testownia próby wielkości $n=2^{15}-3$  powtórzono $R = 10^3$ razy. Tym razem uzyskano dużą $p$-wartość  wynoszącą`r t$p.value`, co nie odrzuca hipotezy zerowej. Jest to spodziewany wynik.
+
+Test pokerowy zatem nie wykrywa żadnych nieprawidłowości w generatorze MT.  
+
+#### Test Kolmogorowa-Smirnowa  
+
+```{r mt KS , warning=F}
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('n','statystyka testowa', 'p-wartość')
+N= 2^(3:10)
+for(n in 1:length(N)){
+  t= ks.test(runif(N[n]),punif)
+  d[n,] <- unname(c(N[n],t$statistic, t$p.value))
+}
+```
+
+
+Algorytm Mersenne Twister bardzo dobrze poradził sobie z tym testem.
+Wyniki pierwszopoziomowego testu przedstawiono w tabeli poniższej. Uzyskane $p$-wartości są  dostatecznie wysokie i dają podstaw do odrzucenia hipotezy o pochodzeniu wygenerowanych liczb z rozkładu jednostajnego. 
+
+```{r mt ks lv1 table}
+knitr::kable(d, caption = "MT - KS test - first level testing ")
+```
+
+Natomiast wyniki testowania drugopoziomowego w większości przypadków również są satysfakcjonujące, żadna z nich nie prowadzi do odrzucenia hipotezy zerowej. Szczegóły są widoczne poniżej.
+  
+```{r mt KS lv2,warning=F}
+reps=1000
+d=as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('n','statystyka testowa', 'p-wartość')
+N= 2^(3:10)
+for(n in 1:length(N)){
+  pv= lvl2.p_vals(n,reps,runif(reps*N[n]), function(v){ks.test(v,punif)})
+  t= ks.test(pv,punif)
+  d[n,] <- unname(c(N[n],t$statistic, t$p.value))
+}
+```
+
+```{r mt ks lv2 table}
+knitr::kable(d, caption =" MT - KS test - second level testing")
+```
+
+
+
+
+
+
+
 
 # Liczby niewymierne 
 
@@ -680,6 +1131,12 @@ Ponadto gdy $p$-wartości otrzymane podczas pierwszopoziomowego testowania podda
 Można zatem stwierdzić, że mimo dobrych wyników uzyskanych podczas *first level testing*, ostatecznie należy uznać, że bitów liczby $\sqrt 2$ nie można traktować jako dobry generator liczb z rozkładu jednostajnego na zbiorze {0,1}.
 
 # Tabela końcowa - wykorzystane funkcje  
+```{r}
+tab<-as.data.frame(matrix(c(0,0,0),ncol=3))
+colnames(d)<- c('obiekt','funkcja', 'parametry')
+tab
+
+```
 
 # Źródła
 https://ipsec.pl/files/ipsec/ving-krypto.pdf   str 7
@@ -688,5 +1145,8 @@ https://ipsec.pl/files/ipsec/ving-krypto.pdf   str 7
 Paweł Lorek Tomasz Rolski
 
 https://pl.wikipedia.org/wiki/RC4
- dokumentacja R
+
+dokumentacja R
+
+https://pl.wikipedia.org/wiki/Mersenne_Twister
 
