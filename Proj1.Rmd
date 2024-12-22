@@ -220,23 +220,25 @@ W testowaniu drugopoziomowym ze względu na ograniczenia pamięci doświadczenie
 W teście Kolmogorowa-Smirnowa odpowiednią praktyką jest wykorzystanie niepowtarzających się liczb, dlatego wielkość próby w pierwszopoziomowym teście może wynieść maksymalnie $n=13$. Będziemy badać czy liczby wygenerowane przez $LCG(13,1,5)$ po znormalizowaniu dzieleniem przez $M=13$ można traktować jako realizacje rozkładu $\mathcal U(0,1)$.
 
 
-```{r lcg1 KS }
+```{r lcg1 KS ,warning=F, message = F}
 d=as.data.frame(matrix(c(0,0,0),ncol=3))
 colnames(d)<- c('n','statystyka testowa', 'p-wartość')
 for(n in 1:13){
   t= ks.test(LCG(n, 13,1,5, 0)/13,punif)
+  
   d[n,] <- unname(c(n,t$statistic, t$p.value))
 }
 ```
 
 Wyniki pierwszopoziomowego testu przedstawiono w tabeli. Ponieważ każda z liczb wygenerowanych przez $LCG$ występuje tyle samo razy, przy tak niewielu liczbach pseudolosowych otrzymano bardzo wysokie $p$-wartości.
-```{r lcg1 ks lv1 table}
+```{r lcg1 ks lv1 table, ,warning=F, message = F}
 knitr::kable(d, caption ="LCG(13,1,5) - first level testing")
 ```
 
 
-```{r lcg1 KS lv2,warning=F}
+```{r lcg1 KS lv2,warning=F, message=F}
 reps=1000
+
 d=as.data.frame(matrix(c(0,0,0),ncol=3))
 colnames(d)<- c('n','statystyka testowa', 'p-wartość')
 for(n in 1:13){
@@ -317,7 +319,7 @@ W testowaniu drugopoziomowym ze względu na ograniczenia pamięci doświadczenie
 W teście Kolmogorowa-Smirnowa odpowiednią praktyką jest wykorzystanie niepowtarzających się liczb, dlatego wielkość próby w pierwszopoziomowym teście może wynieść maksymalnie $n=2^{10}$. Będziemy badać czy liczby wygenerowane przez $LCG(2^{10},3,7)$ po znormalizowaniu dzieleniem przez $M=2^{10}$ można traktować jako realizacje rozkładu $\mathcal U(0,1)$.
 
 
-```{r lcg2 KS }
+```{r lcg2 KS, warning=F }
 d=as.data.frame(matrix(c(0,0,0),ncol=3))
 colnames(d)<- c('n','statystyka testowa', 'p-wartość')
 N= 2^(3:10)
@@ -801,9 +803,8 @@ t=chisq.test.unif(p_vals, 10)
 ```
 
 ```{r}
-t
 t=chisq.test.unif(p_vals, 32)
-t
+
 ```
 
 ```{r mt chisq lvl2 32}
@@ -1130,13 +1131,6 @@ Ponadto gdy $p$-wartości otrzymane podczas pierwszopoziomowego testowania podda
 
 Można zatem stwierdzić, że mimo dobrych wyników uzyskanych podczas *first level testing*, ostatecznie należy uznać, że bitów liczby $\sqrt 2$ nie można traktować jako dobry generator liczb z rozkładu jednostajnego na zbiorze {0,1}.
 
-# Tabela końcowa - wykorzystane funkcje  
-```{r}
-tab<-as.data.frame(matrix(c(0,0,0),ncol=3))
-colnames(d)<- c('obiekt','funkcja', 'parametry')
-tab
-
-```
 
 # Źródła
 https://ipsec.pl/files/ipsec/ving-krypto.pdf   str 7

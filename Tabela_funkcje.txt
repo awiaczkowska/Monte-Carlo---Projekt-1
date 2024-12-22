@@ -1,0 +1,22 @@
+Table 1 - data;chunk [lcg1 KS ];
+Table 1;kable;(d, caption ="LCG(13,1,5) - first level testing")
+Table 2 - data;chunk [lcg2 KS];
+Table 2;kable;(d, caption ="LCG(2^10,3,7) - first level testing")
+Table 3 - data;chunk [glcg KS ];
+Table 3;kable;(d, caption = "GLCG(2^10,(3,7,68)) - first level testing")
+Table 4 - data;chunk [glcg KS lv2];
+Table 4;kable;(d, caption ="GLCG(2^10,(3,7,68)) - second level testing")
+Table 5 - data;chunk [rc KS];
+Table 5;kable;(d, caption ="RC4(32) - KS - first level testing")
+Table 6 - data;chunk [rc KS lv2];
+Table 6;kable;(d, caption ="RC4(32) - KS - second level testing")
+Table 7 - data;chunk [mt KS];
+Table 7;kable;(d, caption = "MT - KS test - first level testing ")
+Table 8 - data;chunk [mt KS lv2];
+Table 8;kable;(d, caption =" MT - KS test - second level testing")
+Table 9 - data;chunk [Pi FM test wynik lvl2];
+Table 9;kable;(d, caption = "second level testiong - pi")
+Table 10 - data;chunk [ FM test wynik lvl2 table];
+Table 10;kable;(d, caption = "second level testiong - e" )Table 11 - data;chunk [sqrt2 FM test wynik lvl2];
+Table 11;kable;(d, caption = "second level testiong - sqrt 2")
+
