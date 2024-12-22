@@ -5,7 +5,7 @@ date: "2024-11-22"
 output:
   pdf_document: 
     toc: yes
-    toc_depth: '3'
+    toc_depth: '2'
 ---
 \newpage
 ```{r setup, include=FALSE}
@@ -49,9 +49,13 @@ $P(b_i = 1) = \frac{1}{2}$.$\quad\quad\quad\quad\quad\quad\mathbb{C.K.D.}$
 
 
 ## Test $\chi^2$ 
+
+Test ten opiera się  na podzieleniu zaobserwowanych wartości na $k$ przedziałów (kategorii, koszyków, kubełków) oraz porównywaniu faktycznej liczby wartości wpadających do każdego z koszyków. Przy założeniu, że obserwowane liczby pseudolosowe są niezależne, statystyka testowa jest postaci:
+$$\hat\chi^2 = \sum_{i=1}^k \frac{(Y_i-np_i)^2}{np_i},$$
+gdzie $Y_i$ - liczba obserwacji, które znalazły się w $i$-tej kategorii; $n$ - liczba wszystkich wygenerowanych numerów pseudolosowych, $p_i$ - teoretyczne. prawdopodobieństwo wpadnięcia pojedynczej obserwacji do $i$-tego koszyka. Statystyka $\hat\chi^2$ ma rozkład $\chi^2$ z $(k-1)$ stopniami swobody.
   
 ```{r chisq.test.unif}
-chisq.test.unif<-function(wek, n_groups){
+chisq.test.unif<-function(wek, n_groups=10){
   # wek - supposed random vector
   # n_groups - number of buckets 
   group_labels <- cut(wek, breaks = seq(0, 1, length.out = n_groups+1), 
@@ -67,19 +71,45 @@ chisq.test.unif<-function(wek, n_groups){
 }
 ```
 
+```{r chisq.test.ints}
+chisq.test.ints<-function(wek, M){
+   n_groups = M
+   # wek - supposed random vector
+   # n_groups - number of buckets 
+   levels(wek) <- as.character(0:(M-1))
+   
+   group_labels <- cut(wek, breaks = (0:M) -1, 
+                       include.lowest = TRUE)
+   
+   levels(group_labels) <- as.character((1:n_groups -1))
+   group_frequencies <- table(group_labels)
+   
+   expected_frequencies <- rep(length(wek) / n_groups, n_groups) 
+   chi_square_result <- chisq.test(group_frequencies, 
+                                   p = expected_frequencies / sum(expected_frequencies))
+   length(group_frequencies)
+   return(chi_square_result)
+ }
+```
 
  
 
 ## Test Pokerowy  
- 
- 
+
+## Test Kolmogorowa-Smirnowa  
+Jest to test opierający się na porównywaniu dystrybuanty empirycznej z teoretyczną. 
+Dystrybuantę empiryczną wyznaczyć można na podstawie obserwacji $X_1,X_2,...,X_n$ korzystając ze wzoru $\hat F(x)=\frac{1}{n} \sum_{i=1}^n\mathbf 1(X_i <x)$. 
+Statystyka testowa to $$ \hat D_n =\sqrt n\cdot \underset{x\in \mathbb R}{sup} \ |\hat F_n(x)-F(x)|$$. Przy $n$ dążącym do nieskończoności rozkład $ \hat D_n$ zbiega do znanego tzw. rozkładu Kołogorowa - Smirnowa.
+
 
 # Generatory
 
-
 ## LCG
+ 
+$LCG$ jest jednym z najprostszych generatorów liczb pseudolosowych ze zbioru liczb naturalnych $\{0,...,M-1\}$. Generowanie ciągu liczb $x_1,x_2...,x_N$ z $LCG(M,a,c)$ przy zadanym ziarnie $x_0$ opiera się na algorytmie:
+$$ x_n = (a\cdot x_{n-1} +c)\ mod\ M .$$
+Rozważone zostaną dwa przykłady tego generatora $LCG(13, 1, 5)$ oraz $LCG(2^{10}, 3, 7)$. Testy zostaną przeprowadzone na próbie $2^{20}$ liczb pseudolosowych. Za ziarno przyjęto $x_0=0$.
 
-*tekst*
 ```{r LCG}
 LCG<-function(n, M,a,c, x){
   # n - liczba generowanych liczb
@@ -91,23 +121,106 @@ LCG<-function(n, M,a,c, x){
   return(randoms)
 }
 ```
-
-
+  
+  
 ```{r LCG data}
 n=2**20
 lcg1 <- LCG(n, 13,1,5, 0)
 lcg2 <- LCG(n, 2^10,3,7, 0)
 ```
 
-```{r}
-lcg2u<-lcg2/2^10
-t= chisq.test.unif(lcg2u, 10)
-t= chisq.test.unif(lcg2u, 512)
-t
+```{r LCG data lvl2}
+n=2**15
+reps = 10**3
+lcg1.lv2 <- LCG(n*reps, 13,1,5, 0)
+lcg2.lv2 <- LCG(n*reps, 2^10,3,7, 0)
 ```
 
 
+```{r lvl2.p_vals}
+lvl2.p_vals<-function(n, reps, randoms,test){
+  # reps - powrórzenia second level testing
+  # n - ilość losowanych liczb
+  # randoms - vector of pseudorandoms
+  # test - funkcja przeprowaąca test, np. ks.test
+  p_vals=numeric(reps)
+  for(r in 1:reps){
+    sampl<-randoms[{(n)*(r-1)+1}:(n*r)]
+    test_result <- test(sampl)
+    p_vals[r]<-test_result$p.value
+  }
+  return(p_vals)
+}
+```
+
+### LCG(13, 1, 5) 
+Nie jest to dobry generator liczb pseudolosowych. Dla ziarna $x_0=0$ okres generatora wynosi $M=13$, i symuluje powtarzającą się sekwencja liczb: `r c(0,lcg1[1:12])`.Każda z liczb występuje dokładnie 1 raz, co oznacza pewną jednorodność, jednak generator jest  przewidywalny: kolejny wynik ściśle zależy od poprzeniego i nie spełnia założeń losowości.
+  
+#### Test $\chi^2$  
+
+```{r lcg1 chisq 13 }
+lcg1u<-lcg1/13
+t= chisq.test.ints(lcg1, 13)
+```
+  
+```{r lcg1 chisq }
+lcg1u<-lcg1/13
+t= chisq.test.unif(lcg1u, 26)
+```
+  
+Najpierw wygenerowano $n = 2^{20}$ liczb pseudolosowych.
+W pierwszopoziomowym teście przy liczbie grup $k=M=13$ generator $LCG(13, 1, 5)$ uzyskuje w teście $\chi^2$ $p$-wartść równą 1, ponieważ każda z liczb ze zbioru $\{0,1,...,M-1\}$ występuje w każdej sekwencji dokładnie raz (w dodatku w ustlonej kolejności).
+
+```{r lcg1 chisq lvl2}
+n=2**10
+reps = 10**3
+p_vals <- lvl2.p_vals(n, reps, lcg1.lv2 ,function(v){chisq.test.ints(v,13)})
+t=chisq.test.unif(p_vals, 10)
+
+```
+Ze względu na ograniczenia pamięci doświadczenie testowania $n=2^{17}$ powtórzono $R=10^3$ razy, a następnie na uzyskanym wektorze $p$-wartości przeprowadzono test $chi^sq$. Test wskazał finalną $p$-wartość poniżej $2.2\cdot 10^{-16}$ zarówno dla liczby kubełków $k=13$ jak i $k=10$. Wynika to z faktu, że wszystkie $p$-wartości wskazują wartość 1, co zdecydowanie zaprzecza tezie o losowości i jednostajnym rozkładzie pierwszopoziomowych $p$-wartości na zbiorze $[0,1]$.
+Według testu $\chi^2$, $LCG(13, 1, 5)$ nie można uznać za dobry generator liczb pseudolosowych.
+
+#### Test Pokerowy   
+
+```{r lcg1 poker }
+n=2**20-1
+lcg1p <- LCG(n, 13,1,5, 0)/13
+t= poker.test(lcg1p)
+```
+Ciąg liczb poddany testowi $\chi^2$ 
+
+  
+```{r lcg1 poker lvl2}
+n = 2**20
+reps = 10^3
+#p_vals <- lvl2.p_vals(n, reps,lc1.lv2, poker.test)
+```
+
+#### Test Kolmogorova-Smirnova  
+
+
+```{r lcg1 KS }
+t= ks.test(lcg1u,punif)
+```
+### LCG($2^{10}$, 3, 7)  
+
+#### Test $\chi^2$  
+
+```{r lcg2 chisq }
+lcg2u<-lcg2/2^10
+t= chisq.test.unif(lcg2u, 10)
+```
+  
+#### Test Pokerowy   
+  
+#### Test Kolmogorova-Smirnova 
+
+
 ## GLCG
+```{r rm lcg}
+rm(lcg1,lcg2,lcg1.lv2, lcg2.lv2, lcg2u, lcg1u, lcg1p, lcg2p)
+```
 
 ```{r GLCG}
 GLCG<-function(n, M,a_wek, x_wek){
@@ -124,13 +237,23 @@ GLCG<-function(n, M,a_wek, x_wek){
 }
 ```
 
-```{r}
-a=c(3,7,68)
-M=2**10
-n=5
-x_wek=1:3
-GLCG(20,2**10, c(3,7,68), 1:3)
+```{r GLCG data}
+n=2^20
+glcg <- GLCG(n,2**10, c(3,7,68), 1:3)
 ```
+
+```{r GLCG data lv2}
+n=2**17
+reps = 10**3
+glcg.lv2 <- GLCG(n*reps,2**10, c(3,7,68), 1:3)
+```
+  
+### Test $\chi^2$  
+  
+### Test Pokerowy   
+  
+### Test Kolmogorova-Smirnova 
+
 
 ## RC4(m)
 
@@ -193,23 +316,44 @@ hist(RC4(1000)/32)
 hist(runif(1000))
 ```
 
-## Testy
+```{r all_subsets}
+all_subsets<-function(wek, max_len=NULL){
+  if(is.null(max_len) || max_len > 2**length(wek)){
+    max_len  = 2**length(wek)}
+  result = list()
 
-
-
+  for(i in 1:length(wek)){
+    if(length(result)>=max_len){break}
+    result_i <- combn(wek,i, simplify = F)
+    append(result,result_i)
+  }
+  return(result)
+}
 ```
-# test kolizji
-?coll.test.sparse
-?coll.test
 
 
-?ks.test
-?poker.test
-?chisq.test
+```{r RC4 data}
+n=2**20 
+rc <- RC4(n, c(22,12,20,24),c(7,12),m=32)
+```
+
+```{r RC4 data lv2}
+n= 2**17
+reps = 10**3
+rc.lv2 <- RC4(n*reps, c(22,12,20,24),c(7,12),m=32)
+```
+
+```{r RC4 data lv2 v2}
+n= 2**17
+reps = 10**3
+rc.lv2.keys <- numeric(n*reps)
+keys <- all_subsets(0:31,reps)
+for(r in 1:reps){
+  rc.lv2.keys[{(n)*(r-1)+1}:(n*r)]<-RC4(n, Key=keys[r],m=32)
+}
 ```
   
-  
-## Frequency Monobit Test  
+### Frequency Monobit Test  
   
 Zauważmy, że liczby ze zbioru $[2^k] := \{0, 1, ... ,2^k-1\}$ można zapisać jako ciągi bitów długości $k$. Losując jednostajnie jedną z liczb ze zbioru $[2^k]$ otrzymujemy 8 bitów o rozkładzie jednostajnym na zbiorze $\{0,1\}$.
   
@@ -266,6 +410,31 @@ for(r in 1:reps){
 
 
 ```
+
+### Test $\chi^2$  
+  
+### Test Pokerowy   
+  
+### Test Kolmogorova-Smirnova 
+
+
+## Mersenne Twister
+
+```{r MT data}
+mt <- runif(2^20)
+```
+
+```{r MT data lv2}
+n= 2**17
+reps = 10**3
+mt.lv2 <- runif(n*reps)
+```
+
+### Test $\chi^2$  
+  
+### Test Pokerowy   
+  
+### Test Kolmogorova-Smirnova 
 
 # Liczby niewymierne 
 
